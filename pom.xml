@@ -1,0 +1,103 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <parent>
+      <groupId>org.jboss.weld</groupId>
+      <artifactId>weld-parent</artifactId>
+      <version>33</version>
+   </parent>
+
+   <groupId>org.jboss.weld.vertx</groupId>
+   <artifactId>weld-vertx-parent</artifactId>
+   <version>1.0.0-SNAPSHOT</version>
+   <packaging>pom</packaging>
+
+   <name>Weld Vert.x Integration</name>
+
+   <url>http://weld.cdi-spec.org</url>
+   <licenses>
+      <license>
+         <name>Apache License, Version 2.0</name>
+         <distribution>repo</distribution>
+         <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      </license>
+   </licenses>
+
+   <scm>
+      <connection>scm:git:git://github.com/weld/weld-vertx.git</connection>
+      <developerConnection>scm:git:git@github.com:weld/weld-vertx.git</developerConnection>
+      <url>https://github.com/weld/weld-vertx</url>
+      <tag>HEAD</tag>
+   </scm>
+
+   <developers>
+      <developer>
+         <name>Weld committers</name>
+      </developer>
+   </developers>
+
+   <modules>
+      <module>core</module>
+   </modules>
+
+   <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <maven.compiler.source>1.8</maven.compiler.source>
+      <maven.compiler.target>1.8</maven.compiler.target>
+      <!-- Versions -->
+      <version.weld>2.3.3.Final</version.weld>
+      <version.vertx>3.2.1</version.vertx>
+      <version.junit>4.11</version.junit>
+      <version.slf4j>1.7.10</version.slf4j>
+      <version.json-path>2.0.0</version.json-path>
+   </properties>
+
+   <dependencyManagement>
+
+      <dependencies>
+
+         <dependency>
+            <groupId>org.jboss.weld.se</groupId>
+            <artifactId>weld-se-core</artifactId>
+            <version>${version.weld}</version>
+         </dependency>
+
+         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${version.vertx}</version>
+         </dependency>
+
+         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>${version.vertx}</version>
+         </dependency>
+
+         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${version.junit}</version>
+            <scope>test</scope>
+         </dependency>
+
+         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${version.slf4j}</version>
+            <scope>test</scope>
+         </dependency>
+
+         <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>${version.json-path}</version>
+            <scope>test</scope>
+         </dependency>
+
+      </dependencies>
+
+   </dependencyManagement>
+
+</project>
