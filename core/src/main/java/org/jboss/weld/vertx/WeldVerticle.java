@@ -26,6 +26,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.vertx.VertxEvent.VertxMessage;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -175,7 +176,7 @@ public class WeldVerticle extends AbstractVerticle {
         }
 
         @Override
-        public VertxMessage to(String address) {
+        public VertxMessage messageTo(String address) {
             return new VertxMessageImpl(address, eventBus);
         }
 
@@ -195,6 +196,11 @@ public class WeldVerticle extends AbstractVerticle {
         @Override
         public void send(Object message) {
             eventBus.send(address, message);
+        }
+
+        @Override
+        public void send(Object message, Handler<AsyncResult<Message<Object>>> replyHandler) {
+            eventBus.send(address, message, replyHandler);
         }
 
         @Override

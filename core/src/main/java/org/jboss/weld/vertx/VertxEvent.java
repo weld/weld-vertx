@@ -16,6 +16,8 @@
  */
 package org.jboss.weld.vertx;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
 
 /**
@@ -66,7 +68,7 @@ public interface VertxEvent {
     * @param address
     * @return a message
     */
-   VertxMessage to(String address);
+   VertxMessage messageTo(String address);
 
    /**
     *
@@ -75,6 +77,8 @@ public interface VertxEvent {
    public interface VertxMessage {
 
        void send(Object message);
+
+       void send(Object message, Handler<AsyncResult<Message<Object>>> replyHandler);
 
        void publish(Object message);
 

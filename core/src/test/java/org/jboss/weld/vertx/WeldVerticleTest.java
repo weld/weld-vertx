@@ -33,6 +33,8 @@ public class WeldVerticleTest {
         vertx.createHttpServer().requestHandler(request -> {
             request.response().end("Hello world");
         }).listen(8080);
+        // We don't expect the tests to run in parallel
+        VertxObservers.SYNCHRONIZER.clear();
     }
 
     @After
@@ -104,8 +106,8 @@ public class WeldVerticleTest {
     @Test
     public void testConsumerEventBus() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_BUS, "oops");
-        // cdi observer sends a message to TEST_PING
-        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        // cdi observer sends a message to TEST_BUS_NEXT
+        assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
     }
 
 }
