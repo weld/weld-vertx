@@ -16,8 +16,6 @@
  */
 package org.jboss.weld.vertx;
 
-import java.util.logging.Logger;
-
 import javax.enterprise.event.Event;
 
 import org.jboss.weld.config.ConfigurationKey;
@@ -31,6 +29,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  *
@@ -40,7 +40,7 @@ public class WeldVerticle extends AbstractVerticle {
 
     public static final int OBSERVER_FAILURE_CODE = 0x1B00;
 
-    private static final Logger LOGGER = Logger.getLogger(WeldVerticle.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(WeldVerticle.class.getName());
 
     private WeldContainer weldContainer;
 
@@ -53,7 +53,7 @@ public class WeldVerticle extends AbstractVerticle {
             vertx.eventBus().consumer(address, VertxHandler.from(vertx, weldContainer, address));
         }
         this.weldContainer = weldContainer;
-        LOGGER.info("Weld verticle started");
+        LOGGER.info("Weld verticle started for deployment {0}", deploymentID());
     }
 
     @Override
@@ -111,7 +111,7 @@ public class WeldVerticle extends AbstractVerticle {
 
     static class VertxEventImpl implements VertxEvent {
 
-        private static final Logger LOGGER = Logger.getLogger(VertxEventImpl.class.getName());
+        private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventImpl.class.getName());
 
         private final EventBus eventBus;
 
@@ -152,7 +152,7 @@ public class WeldVerticle extends AbstractVerticle {
         @Override
         public void setReply(Object reply) {
             if (replyAddress == null) {
-                LOGGER.warning("The message was sent without a reply handler - the reply will be ignored");
+                LOGGER.warn("The message was sent without a reply handler - the reply will be ignored");
             }
             this.reply = reply;
         }

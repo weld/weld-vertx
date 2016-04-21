@@ -19,12 +19,14 @@ package org.jboss.weld.vertx;
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ObserverMethod;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
+
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  * This extension detects all the observer methods that should become message consumers.
@@ -33,7 +35,7 @@ import javax.enterprise.inject.spi.ProcessObserverMethod;
  */
 public class VertxExtension implements Extension {
 
-    private static final Logger LOGGER = Logger.getLogger(VertxExtension.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(VertxExtension.class.getName());
 
     private final Set<String> consumerAddresses;
 
@@ -44,10 +46,10 @@ public class VertxExtension implements Extension {
     public void detectMessageConsumers(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
         String vertxAddress = getVertxAddress(event.getObserverMethod());
         if (vertxAddress == null) {
-            LOGGER.warning("VertxEvent observer found but no @VertxConsumer declared: " + event.getObserverMethod().toString());
+            LOGGER.warn("VertxEvent observer found but no @VertxConsumer declared: {0}", event.getObserverMethod());
             return;
         }
-        LOGGER.info("Vertx message consumer found: " + event.getObserverMethod().toString());
+        LOGGER.info("Vertx message consumer found: {0}", event.getObserverMethod());
         consumerAddresses.add(vertxAddress);
     }
 
