@@ -46,7 +46,7 @@
       <maven.compiler.source>1.8</maven.compiler.source>
       <maven.compiler.target>1.8</maven.compiler.target>
       <!-- Versions -->
-      <version.weld>2.3.3.Final</version.weld>
+      <version.weld>2.3.4.Final</version.weld>
       <version.vertx>3.2.1</version.vertx>
       <version.junit>4.11</version.junit>
       <version.slf4j>1.7.10</version.slf4j>
