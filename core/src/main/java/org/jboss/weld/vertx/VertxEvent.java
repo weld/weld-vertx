@@ -18,6 +18,7 @@ package org.jboss.weld.vertx;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 
 /**
@@ -75,6 +76,8 @@ public interface VertxEvent {
     * @author Martin Kouba
     */
    public interface VertxMessage {
+
+       VertxMessage setDeliveryOptions(DeliveryOptions deliveryOptions);
 
        void send(Object message);
 

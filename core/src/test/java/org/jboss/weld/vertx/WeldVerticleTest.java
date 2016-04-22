@@ -110,4 +110,11 @@ public class WeldVerticleTest {
         assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
     }
 
+    @Test
+    public void testConsumerEventBusTimeout() throws InterruptedException {
+        vertx.eventBus().send(VertxObservers.TEST_BUS_TIMEOUT, "time out!");
+        assertEquals("timeout", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+    }
+
+
 }
