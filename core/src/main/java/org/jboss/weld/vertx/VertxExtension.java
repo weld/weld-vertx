@@ -49,7 +49,7 @@ public class VertxExtension implements Extension {
             LOGGER.warn("VertxEvent observer found but no @VertxConsumer declared: {0}", event.getObserverMethod());
             return;
         }
-        LOGGER.info("Vertx message consumer found: {0}", event.getObserverMethod());
+        LOGGER.debug("Vertx message consumer found: {0}", event.getObserverMethod());
         consumerAddresses.add(vertxAddress);
     }
 

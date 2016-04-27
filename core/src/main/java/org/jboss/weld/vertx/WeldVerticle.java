@@ -26,6 +26,7 @@ import org.jboss.weld.vertx.VertxEvent.VertxMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
@@ -118,6 +119,8 @@ public class WeldVerticle extends AbstractVerticle {
 
         private final String address;
 
+        private final MultiMap headers;
+
         private final Object messageBody;
 
         private final String replyAddress;
@@ -130,6 +133,7 @@ public class WeldVerticle extends AbstractVerticle {
 
         VertxEventImpl(Message<Object> message, EventBus eventBus) {
             this.address = message.address();
+            this.headers = message.headers();
             this.messageBody = message.body();
             this.replyAddress = message.replyAddress();
             this.eventBus = eventBus;
@@ -138,6 +142,11 @@ public class WeldVerticle extends AbstractVerticle {
         @Override
         public String getAddress() {
             return address;
+        }
+
+        @Override
+        public MultiMap getHeaders() {
+            return headers;
         }
 
         @Override

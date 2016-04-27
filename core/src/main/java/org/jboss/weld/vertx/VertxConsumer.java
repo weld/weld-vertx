@@ -29,7 +29,7 @@ import javax.enterprise.util.AnnotationLiteral;
 import javax.inject.Qualifier;
 
 /**
- *
+ * An observer method must declare an event parameter with this qualifier in order to be recognized as a Vertx message consumer.
  *
  * @author Martin Kouba
  * @see VertxEvent

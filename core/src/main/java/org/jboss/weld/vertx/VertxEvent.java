@@ -18,12 +18,17 @@ package org.jboss.weld.vertx;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 
 /**
+ * Wrapper of a Vertx {@link Message}.
+ * <p>
+ * An observer method must declare an event parameter of the type {@link VertxEvent} in order to be recognized as a Vertx message consumer.
  *
  * @author Martin Kouba
+ * @see VertxConsumer
  */
 public interface VertxEvent {
 
@@ -36,6 +41,13 @@ public interface VertxEvent {
 
     /**
      *
+     * @return the message headers
+     * @see Message#headers()
+     */
+    MultiMap getHeaders();
+
+    /**
+     *
      * @return the message body/payload
      * @see Message#body()
      */
@@ -43,7 +55,7 @@ public interface VertxEvent {
 
     /**
      *
-     * @return the reply address, or null in case of
+     * @return the reply address, or null in case of the message was sent without a reply handler
      * @see Message#replyAddress()
      */
     String getReplyAddress();
@@ -64,27 +76,27 @@ public interface VertxEvent {
     void fail(int code, String message);
 
     /**
-    * Send/publish messages using the Vertx event bus.
-    *
-    * @param address
-    * @return a message
-    */
-   VertxMessage messageTo(String address);
+     * Send/publish messages using the Vertx event bus.
+     *
+     * @param address
+     * @return a message
+     */
+    VertxMessage messageTo(String address);
 
-   /**
-    *
-    * @author Martin Kouba
-    */
-   public interface VertxMessage {
+    /**
+     *
+     * @author Martin Kouba
+     */
+    public interface VertxMessage {
 
-       VertxMessage setDeliveryOptions(DeliveryOptions deliveryOptions);
+        VertxMessage setDeliveryOptions(DeliveryOptions deliveryOptions);
 
-       void send(Object message);
+        void send(Object message);
 
-       void send(Object message, Handler<AsyncResult<Message<Object>>> replyHandler);
+        void send(Object message, Handler<AsyncResult<Message<Object>>> replyHandler);
 
-       void publish(Object message);
+        void publish(Object message);
 
-   }
+    }
 
 }
