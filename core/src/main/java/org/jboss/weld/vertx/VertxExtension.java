@@ -74,10 +74,20 @@ public class VertxExtension implements Extension {
     }
 
     public void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
-        // Allow to inject Vertx used to deploy the of the verticle
-        event.addBean(new VertxBean());
-        // Allow to inject Context of the verticle
-        event.addBean(new ContextBean());
+        // Allow to inject Vertx used to deploy the WeldVerticle
+        event.addBean(new VertxBean<Vertx>(Vertx.class) {
+            @Override
+            public Vertx create(CreationalContext<Vertx> creationalContext) {
+                return vertx;
+            }
+        });
+        // Allow to inject Context of the WeldVerticle
+        event.addBean(new VertxBean<Context>(Context.class) {
+            @Override
+            public Context create(CreationalContext<Context> creationalContext) {
+                return context;
+            }
+        });
     }
 
     Set<String> getConsumerAddresses() {
@@ -98,20 +108,26 @@ public class VertxExtension implements Extension {
         return null;
     }
 
-    private class VertxBean implements Bean<Vertx> {
+    private abstract class VertxBean<T> implements Bean<T> {
 
-        @Override
-        public Vertx create(CreationalContext<Vertx> creationalContext) {
-            return vertx;
+        private final Set<Type> beanTypes;
+
+        VertxBean(Type... types) {
+            Set<Type> beanTypes = new HashSet<>();
+            for (Type type : types) {
+                beanTypes.add(type);
+            }
+            beanTypes.add(Object.class);
+            this.beanTypes = Collections.unmodifiableSet(beanTypes);
         }
 
         @Override
-        public void destroy(Vertx instance, CreationalContext<Vertx> creationalContext) {
+        public void destroy(T instance, CreationalContext<T> creationalContext) {
         }
 
         @Override
         public Set<Type> getTypes() {
-            return ImmutableSet.<Type> of(Vertx.class, Object.class);
+            return beanTypes;
         }
 
         @Override
@@ -141,65 +157,7 @@ public class VertxExtension implements Extension {
 
         @Override
         public Class<?> getBeanClass() {
-            return VertxBean.class;
-        }
-
-        @Override
-        public Set<InjectionPoint> getInjectionPoints() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isNullable() {
-            return false;
-        }
-
-    }
-
-    private class ContextBean implements Bean<Context> {
-
-        @Override
-        public Context create(CreationalContext<Context> creationalContext) {
-            return context;
-        }
-
-        @Override
-        public void destroy(Context instance, CreationalContext<Context> creationalContext) {
-        }
-
-        @Override
-        public Set<Type> getTypes() {
-            return ImmutableSet.<Type> of(Context.class, Object.class);
-        }
-
-        @Override
-        public Set<Annotation> getQualifiers() {
-            return ImmutableSet.of(AnyLiteral.INSTANCE, DefaultLiteral.INSTANCE);
-        }
-
-        @Override
-        public Class<? extends Annotation> getScope() {
-            return ApplicationScoped.class;
-        }
-
-        @Override
-        public String getName() {
-            return null;
-        }
-
-        @Override
-        public Set<Class<? extends Annotation>> getStereotypes() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isAlternative() {
-            return false;
-        }
-
-        @Override
-        public Class<?> getBeanClass() {
-            return ContextBean.class;
+            return VertxExtension.class;
         }
 
         @Override
