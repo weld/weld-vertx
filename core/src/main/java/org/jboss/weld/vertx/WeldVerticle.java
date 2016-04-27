@@ -48,7 +48,7 @@ public class WeldVerticle extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
-        VertxExtension vertxExtension = new VertxExtension();
+        VertxExtension vertxExtension = new VertxExtension(vertx, context);
         WeldContainer weldContainer = new Weld().containerId(deploymentID()).property(ConfigurationKey.CONCURRENT_DEPLOYMENT.get(), false)
                 .addExtension(vertxExtension).initialize();
         for (String address : vertxExtension.getConsumerAddresses()) {

@@ -17,14 +17,28 @@
 package org.jboss.weld.vertx;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.spi.AfterBeanDiscovery;
+import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
+import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
 
+import org.jboss.weld.literal.AnyLiteral;
+import org.jboss.weld.literal.DefaultLiteral;
+
+import com.google.common.collect.ImmutableSet;
+
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -39,8 +53,14 @@ public class VertxExtension implements Extension {
 
     private final Set<String> consumerAddresses;
 
-    public VertxExtension() {
+    private final Vertx vertx;
+
+    private final Context context;
+
+    public VertxExtension(Vertx vertx, Context context) {
         this.consumerAddresses = new HashSet<>();
+        this.vertx = vertx;
+        this.context = context;
     }
 
     public void detectMessageConsumers(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
@@ -51,6 +71,13 @@ public class VertxExtension implements Extension {
         }
         LOGGER.debug("Vertx message consumer found: {0}", event.getObserverMethod());
         consumerAddresses.add(vertxAddress);
+    }
+
+    public void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
+        // Allow to inject Vertx used to deploy the of the verticle
+        event.addBean(new VertxBean());
+        // Allow to inject Context of the verticle
+        event.addBean(new ContextBean());
     }
 
     Set<String> getConsumerAddresses() {
@@ -69,6 +96,122 @@ public class VertxExtension implements Extension {
             }
         }
         return null;
+    }
+
+    private class VertxBean implements Bean<Vertx> {
+
+        @Override
+        public Vertx create(CreationalContext<Vertx> creationalContext) {
+            return vertx;
+        }
+
+        @Override
+        public void destroy(Vertx instance, CreationalContext<Vertx> creationalContext) {
+        }
+
+        @Override
+        public Set<Type> getTypes() {
+            return ImmutableSet.<Type> of(Vertx.class, Object.class);
+        }
+
+        @Override
+        public Set<Annotation> getQualifiers() {
+            return ImmutableSet.of(AnyLiteral.INSTANCE, DefaultLiteral.INSTANCE);
+        }
+
+        @Override
+        public Class<? extends Annotation> getScope() {
+            return ApplicationScoped.class;
+        }
+
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        @Override
+        public Set<Class<? extends Annotation>> getStereotypes() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public boolean isAlternative() {
+            return false;
+        }
+
+        @Override
+        public Class<?> getBeanClass() {
+            return VertxBean.class;
+        }
+
+        @Override
+        public Set<InjectionPoint> getInjectionPoints() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public boolean isNullable() {
+            return false;
+        }
+
+    }
+
+    private class ContextBean implements Bean<Context> {
+
+        @Override
+        public Context create(CreationalContext<Context> creationalContext) {
+            return context;
+        }
+
+        @Override
+        public void destroy(Context instance, CreationalContext<Context> creationalContext) {
+        }
+
+        @Override
+        public Set<Type> getTypes() {
+            return ImmutableSet.<Type> of(Context.class, Object.class);
+        }
+
+        @Override
+        public Set<Annotation> getQualifiers() {
+            return ImmutableSet.of(AnyLiteral.INSTANCE, DefaultLiteral.INSTANCE);
+        }
+
+        @Override
+        public Class<? extends Annotation> getScope() {
+            return ApplicationScoped.class;
+        }
+
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        @Override
+        public Set<Class<? extends Annotation>> getStereotypes() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public boolean isAlternative() {
+            return false;
+        }
+
+        @Override
+        public Class<?> getBeanClass() {
+            return ContextBean.class;
+        }
+
+        @Override
+        public Set<InjectionPoint> getInjectionPoints() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public boolean isNullable() {
+            return false;
+        }
+
     }
 
 }

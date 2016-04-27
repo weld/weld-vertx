@@ -54,6 +54,8 @@ public class VertxObservers {
         assertNotNull(event.getReplyAddress());
         assertNotNull(coolService);
         assertNotNull(coolService.getCacheService());
+        assertNotNull(coolService.getVertx().eventBus());
+        assertNotNull(coolService.getContext().deploymentID());
         event.setReply(coolService.getId() + "_" + coolService.getCacheService().getId());
     }
 

@@ -23,7 +23,7 @@ import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 
 /**
- * Wrapper of a Vertx {@link Message}.
+ * Vertx {@link Message} wrapper.
  * <p>
  * An observer method must declare an event parameter of the type {@link VertxEvent} in order to be recognized as a Vertx message consumer.
  *
