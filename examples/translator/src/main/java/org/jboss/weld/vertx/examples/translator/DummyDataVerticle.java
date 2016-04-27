@@ -16,8 +16,7 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.NO_TRANSLATION_DATA;
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.TRANSLATION_DATA_FOUND;
+import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.REQUEST_DATA;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,10 +57,9 @@ public class DummyDataVerticle extends AbstractVerticle {
             translationData.put(entry.getKey().toString().toLowerCase(), Arrays.asList(entry.getValue().toString().split(",")));
         }
 
-        // If someone asks for data then publish the available data
-        vertx.eventBus().consumer(NO_TRANSLATION_DATA, (m) -> {
+        vertx.eventBus().consumer(REQUEST_DATA, (m) -> {
             String word = m.body().toString();
-            LOGGER.info("Find translation data for {0}");
+            LOGGER.info("Find translation data for {0}", word);
             List<String> result = translationData.get(word.toLowerCase());
             if (result == null) {
                 result = Collections.emptyList();
@@ -69,7 +67,7 @@ public class DummyDataVerticle extends AbstractVerticle {
             if (result.isEmpty()) {
                 LOGGER.warn("No translation data available for: {0}", word);
             }
-            vertx.eventBus().publish(TRANSLATION_DATA_FOUND, new JsonObject().put("word", word).put("translations", new JsonArray(result)));
+            m.reply(new JsonObject().put("word", word).put("translations", new JsonArray(result)));
         });
     }
 

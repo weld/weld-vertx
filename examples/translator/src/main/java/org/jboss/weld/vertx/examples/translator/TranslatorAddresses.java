@@ -24,9 +24,7 @@ public final class TranslatorAddresses {
 
     public static final String TRANSLATE = "org.jboss.weld.vertx.examples.translator.translate";
 
-    public static final String NO_TRANSLATION_DATA = "org.jboss.weld.vertx.examples.translator.no_data";
-
-    public static final String TRANSLATION_DATA_FOUND = "org.jboss.weld.vertx.examples.translator.data_found";
+    public static final String REQUEST_DATA = "org.jboss.weld.vertx.examples.translator.request_data";
 
     public static final String CLEAR_CACHE = "org.jboss.weld.vertx.examples.translator.clear_cache";
 

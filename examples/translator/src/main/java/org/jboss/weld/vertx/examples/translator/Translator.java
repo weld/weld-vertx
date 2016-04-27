@@ -16,7 +16,6 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.NO_TRANSLATION_DATA;
 import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.TRANSLATE;
 
 import java.util.List;
@@ -30,6 +29,8 @@ import org.jboss.weld.vertx.VertxEvent;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  *
@@ -38,33 +39,30 @@ import io.vertx.core.json.JsonObject;
 @Singleton
 public class Translator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Translator.class);
+
     private final SentenceParser parser;
 
-    private final TranslationDataCache cache;
+    private final DataCache cache;
 
     @Inject
-    Translator(SentenceParser parser, TranslationDataCache dictionary) {
+    Translator(SentenceParser parser, DataCache dictionary) {
         this.parser = parser;
         this.cache = dictionary;
     }
 
     public void translate(@Observes @VertxConsumer(TRANSLATE) VertxEvent event) {
+        String sentence = event.getMessageBody().toString();
+        LOGGER.info("Going to translate: " + sentence);
 
         JsonArray results = new JsonArray();
-        List<String> words = parser.parse(event.getMessageBody().toString());
-
-        for (String word : words) {
+        for (String word : parser.parse(sentence)) {
 
             JsonObject result = new JsonObject();
             result.put("word", word);
 
             List<String> translations = cache.getTranslations(word);
-
-            if (translations == null) {
-                // No data found in cache
-                event.messageTo(NO_TRANSLATION_DATA).publish(word);
-                
-            } else {
+            if (translations != null) {
                 result.put("translations", new JsonArray(translations));
             }
             results.add(result);

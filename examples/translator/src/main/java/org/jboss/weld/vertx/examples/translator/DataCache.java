@@ -17,20 +17,25 @@
 package org.jboss.weld.vertx.examples.translator;
 
 import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.CLEAR_CACHE;
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.TRANSLATION_DATA_FOUND;
+import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.REQUEST_DATA;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
 import org.jboss.weld.vertx.VertxConsumer;
 import org.jboss.weld.vertx.VertxEvent;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -41,44 +46,23 @@ import io.vertx.core.logging.LoggerFactory;
  * @author Martin Kouba
  */
 @ApplicationScoped
-public class TranslationDataCache {
+public class DataCache {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TranslationDataCache.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataCache.class.getName());
+
+    private final Vertx vertx;
 
     private final ConcurrentMap<String, List<String>> cache;
 
-    public TranslationDataCache() {
+    @Inject
+    public DataCache(Vertx vertx) {
         this.cache = new ConcurrentHashMap<>();
+        this.vertx = vertx;
     }
 
     void clear(@Observes @VertxConsumer(CLEAR_CACHE) VertxEvent event) {
         LOGGER.info("Clear dictionary cache");
         cache.clear();
-    }
-
-    void putIfAbsent(@Observes @VertxConsumer(TRANSLATION_DATA_FOUND) VertxEvent event) {
-
-        Object data = event.getMessageBody();
-
-        if (data instanceof JsonObject) {
-
-            JsonObject dataObject = (JsonObject) data;
-            String word = dataObject.getString("word");
-
-            if (word != null) {
-                List<String> foundMatches;
-                JsonArray matchesArray = dataObject.getJsonArray("translations");
-                if (matchesArray != null) {
-                    foundMatches = new ArrayList<>();
-                    for (Object element : matchesArray) {
-                        foundMatches.add(element.toString());
-                    }
-                } else {
-                    foundMatches = Collections.emptyList();
-                }
-                putIfAbsent(word, foundMatches);
-            }
-        }
     }
 
     /**
@@ -87,7 +71,46 @@ public class TranslationDataCache {
      * @return a list of matching translations or <code>null</code> if no data available yet
      */
     List<String> getTranslations(String word) {
-        return cache.get(word.toLowerCase());
+        List<String> translations = cache.get(word.toLowerCase());
+        if (translations == null) {
+            // No translations available - send request
+            // We use synchronizer to block for 2 seconds
+            final BlockingQueue<List<String>> synchronizer = new LinkedBlockingQueue<>();
+            vertx.eventBus().send(REQUEST_DATA, word, (r) -> {
+                if (r.succeeded()) {
+                    synchronizer.add(putIfAbsent(r.result().body()));
+                }
+            });
+            try {
+                translations = synchronizer.poll(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                LOGGER.warn("No translation data available for {0} right now...", word);
+            }
+        }
+        return translations;
+    }
+
+    private List<String> putIfAbsent(Object data) {
+        if (data instanceof JsonObject) {
+            JsonObject dataObject = (JsonObject) data;
+            String word = dataObject.getString("word");
+            if (word != null) {
+                List<String> translations;
+                JsonArray translationsArray = dataObject.getJsonArray("translations");
+                if (translationsArray != null) {
+                    translations = new ArrayList<>();
+                    for (Object element : translationsArray) {
+                        translations.add(element.toString());
+                    }
+                    translations = Collections.unmodifiableList(translations);
+                } else {
+                    translations = Collections.emptyList();
+                }
+                putIfAbsent(word, translations);
+                return translations;
+            }
+        }
+        return null;
     }
 
     void putIfAbsent(String word, List<String> matches) {
