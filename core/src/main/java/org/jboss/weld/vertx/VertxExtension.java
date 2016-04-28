@@ -35,8 +35,6 @@ import javax.enterprise.inject.spi.ProcessObserverMethod;
 import org.jboss.weld.literal.AnyLiteral;
 import org.jboss.weld.literal.DefaultLiteral;
 
-import com.google.common.collect.ImmutableSet;
-
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -112,6 +110,8 @@ public class VertxExtension implements Extension {
 
         private final Set<Type> beanTypes;
 
+        private final Set<Annotation> qualifiers;
+
         VertxBean(Type... types) {
             Set<Type> beanTypes = new HashSet<>();
             for (Type type : types) {
@@ -119,6 +119,10 @@ public class VertxExtension implements Extension {
             }
             beanTypes.add(Object.class);
             this.beanTypes = Collections.unmodifiableSet(beanTypes);
+            Set<Annotation> qualifiers = new HashSet<>();
+            qualifiers.add(AnyLiteral.INSTANCE);
+            qualifiers.add(DefaultLiteral.INSTANCE);
+            this.qualifiers = Collections.unmodifiableSet(qualifiers);
         }
 
         @Override
@@ -132,7 +136,7 @@ public class VertxExtension implements Extension {
 
         @Override
         public Set<Annotation> getQualifiers() {
-            return ImmutableSet.of(AnyLiteral.INSTANCE, DefaultLiteral.INSTANCE);
+            return qualifiers;
         }
 
         @Override
