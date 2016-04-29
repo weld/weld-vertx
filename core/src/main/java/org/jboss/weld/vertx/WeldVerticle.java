@@ -35,6 +35,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
+ * Starts Weld SE container and automatically registers {@link VertxExtension}.
  *
  * @author Martin Kouba
  */
@@ -85,6 +86,7 @@ public class WeldVerticle extends AbstractVerticle {
             vertx.<Object> executeBlocking(future -> {
                 try {
                     VertxEventImpl vertxEvent = new VertxEventImpl(message, vertx.eventBus());
+                    // Synchronously notify all the observer methods for a specific address
                     event.fire(vertxEvent);
                     if (vertxEvent.isFailure()) {
                         future.fail(new RecipientFailureException(vertxEvent.getFailureCode(), vertxEvent.getFailureMessage()));

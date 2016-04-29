@@ -41,7 +41,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * This extension detects all the observer methods that should become message consumers.
+ * Detects all the observer methods that should become message consumers and adds custom beans for {@link Vertx} and {@link Context} of the {@link WeldVerticle}
  *
  * @author Martin Kouba
  */
