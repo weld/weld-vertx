@@ -16,7 +16,7 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.TRANSLATE;
+import static org.jboss.weld.vertx.examples.translator.Addresses.TRANSLATE;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Verticle;
@@ -39,13 +39,10 @@ public class ServerVerticle extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
-
         Router router = Router.router(vertx);
-
         router.route().handler(BodyHandler.create());
-        router.post("/translate").blockingHandler(this::handleTranslate);
+        router.post("/translate").handler(this::handleTranslate);
         router.get("/").handler((r) -> r.response().setStatusCode(200).end("Weld Vert.x translator example running"));
-
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 

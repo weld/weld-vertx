@@ -16,7 +16,7 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.REQUEST_DATA;
+import static org.jboss.weld.vertx.examples.translator.Addresses.REQUEST_DATA;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,7 +56,6 @@ public class DummyDataVerticle extends AbstractVerticle {
         for (Entry<Object, Object> entry : properties.entrySet()) {
             translationData.put(entry.getKey().toString().toLowerCase(), Arrays.asList(entry.getValue().toString().split(",")));
         }
-
         vertx.eventBus().consumer(REQUEST_DATA, (m) -> {
             String word = m.body().toString();
             LOGGER.info("Find translation data for {0}", word);

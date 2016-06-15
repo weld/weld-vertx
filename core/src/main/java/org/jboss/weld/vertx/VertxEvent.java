@@ -61,7 +61,7 @@ public interface VertxEvent {
     String getReplyAddress();
 
     /**
-     * If the reply address is null (point-to-point messaging withou reply handler) this method is noop.
+     * If the reply address is null (point-to-point messaging without reply handler) this method is noop.
      *
      * @param reply
      * @see Message#reply(Object)

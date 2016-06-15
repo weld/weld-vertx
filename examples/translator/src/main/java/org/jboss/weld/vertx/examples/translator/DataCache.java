@@ -16,8 +16,8 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.CLEAR_CACHE;
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.REQUEST_DATA;
+import static org.jboss.weld.vertx.examples.translator.Addresses.CLEAR_CACHE;
+import static org.jboss.weld.vertx.examples.translator.Addresses.REQUEST_DATA;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -16,7 +16,7 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.TranslatorAddresses.TRANSLATE;
+import static org.jboss.weld.vertx.examples.translator.Addresses.TRANSLATE;
 
 import java.util.List;
 

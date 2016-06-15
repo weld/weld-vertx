@@ -20,7 +20,7 @@ package org.jboss.weld.vertx.examples.translator;
  *
  * @author Martin Kouba
  */
-public final class TranslatorAddresses {
+public final class Addresses {
 
     public static final String TRANSLATE = "org.jboss.weld.vertx.examples.translator.translate";
 
@@ -28,7 +28,7 @@ public final class TranslatorAddresses {
 
     public static final String CLEAR_CACHE = "org.jboss.weld.vertx.examples.translator.clear_cache";
 
-    private TranslatorAddresses() {
+    private Addresses() {
     }
 
 }
