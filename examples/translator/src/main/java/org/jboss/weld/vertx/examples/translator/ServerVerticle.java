@@ -16,16 +16,11 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import static org.jboss.weld.vertx.examples.translator.Addresses.TRANSLATE;
+import org.jboss.weld.vertx.web.WeldWebVerticle;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Verticle;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 /**
@@ -35,34 +30,18 @@ import io.vertx.ext.web.handler.BodyHandler;
  */
 public class ServerVerticle extends AbstractVerticle {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ServerVerticle.class.getName());
+    private final WeldWebVerticle weldVerticle;
+
+    ServerVerticle(WeldWebVerticle weldVerticle) {
+        this.weldVerticle = weldVerticle;
+    }
 
     @Override
     public void start() throws Exception {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        router.post("/translate").handler(this::handleTranslate);
-        router.get("/").handler((r) -> r.response().setStatusCode(200).end("Weld Vert.x translator example running"));
+        weldVerticle.registerRoutes(router);
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
-    }
-
-    private void handleTranslate(RoutingContext routingContext) {
-        HttpServerResponse response = routingContext.response();
-        String sentence = routingContext.request().getFormAttribute("sentence");
-        if (sentence != null) {
-            LOGGER.debug("Handle translation: {0}", sentence);
-            // See also Translator#translate()
-            vertx.eventBus().<JsonArray> send(TRANSLATE, sentence, r -> {
-                if (r.succeeded()) {
-                    response.putHeader("Content-type", "application/json");
-                    response.setStatusCode(200).end(r.result().body().encode());
-                } else {
-                    response.setStatusCode(500).end(r.cause().toString());
-                }
-            });
-        } else {
-            response.end("Use \"application/x-www-form-urlencoded\" content type and specify value for name \"sentence\"");
-        }
     }
 
 }

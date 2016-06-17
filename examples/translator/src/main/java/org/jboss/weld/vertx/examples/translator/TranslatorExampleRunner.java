@@ -16,7 +16,7 @@
  */
 package org.jboss.weld.vertx.examples.translator;
 
-import org.jboss.weld.vertx.WeldVerticle;
+import org.jboss.weld.vertx.web.WeldWebVerticle;
 
 import io.vertx.core.Vertx;
 
@@ -30,10 +30,14 @@ import io.vertx.core.Vertx;
 public class TranslatorExampleRunner {
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-        vertx.deployVerticle(new WeldVerticle());
+        final Vertx vertx = Vertx.vertx();
+        final WeldWebVerticle weldVerticle = new WeldWebVerticle();
+        vertx.deployVerticle(weldVerticle, r -> {
+            if (r.succeeded()) {
+                vertx.deployVerticle(new ServerVerticle(weldVerticle));
+            }
+        });
         vertx.deployVerticle(new DummyDataVerticle());
-        vertx.deployVerticle(new ServerVerticle());
     }
 
 }

@@ -15,7 +15,7 @@
 
       <dependency>
          <groupId>org.jboss.weld.vertx</groupId>
-         <artifactId>weld-vertx-core</artifactId>
+         <artifactId>weld-vertx-web</artifactId>
          <version>${project.version}</version>
       </dependency>
 
