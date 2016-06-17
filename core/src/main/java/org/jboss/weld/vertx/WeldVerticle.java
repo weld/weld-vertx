@@ -50,8 +50,10 @@ public class WeldVerticle extends AbstractVerticle {
     @Override
     public void start() throws Exception {
         VertxExtension vertxExtension = new VertxExtension(vertx, context);
-        WeldContainer weldContainer = new Weld().containerId(deploymentID()).property(ConfigurationKey.CONCURRENT_DEPLOYMENT.get(), false)
-                .addExtension(vertxExtension).initialize();
+        Weld weld = new Weld().containerId(deploymentID()).property(ConfigurationKey.CONCURRENT_DEPLOYMENT.get(), false);
+        weld.addExtension(vertxExtension);
+        configureWeld(weld);
+        WeldContainer weldContainer = weld.initialize();
         for (String address : vertxExtension.getConsumerAddresses()) {
             vertx.eventBus().consumer(address, VertxHandler.from(vertx, weldContainer, address));
         }
@@ -64,6 +66,16 @@ public class WeldVerticle extends AbstractVerticle {
         if (weldContainer != null) {
             weldContainer.shutdown();
         }
+    }
+
+    protected void configureWeld(Weld weld) {
+    }
+
+    protected WeldContainer container() {
+        if (weldContainer == null) {
+            throw new IllegalStateException("Weld container not initialized yet");
+        }
+        return weldContainer;
     }
 
     static class VertxHandler implements Handler<Message<Object>> {

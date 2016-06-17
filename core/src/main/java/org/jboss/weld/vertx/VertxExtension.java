@@ -20,6 +20,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -30,6 +31,7 @@ import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
+import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
 
 import org.jboss.weld.literal.AnyLiteral;
@@ -106,14 +108,14 @@ public class VertxExtension implements Extension {
         return null;
     }
 
-    private abstract class VertxBean<T> implements Bean<T> {
+    private abstract class VertxBean<T> implements Bean<T>, PassivationCapable {
 
         private final Set<Type> beanTypes;
 
         private final Set<Annotation> qualifiers;
 
         VertxBean(Type... types) {
-            Set<Type> beanTypes = new HashSet<>();
+            Set<Type> beanTypes = new LinkedHashSet<>();
             for (Type type : types) {
                 beanTypes.add(type);
             }
@@ -172,6 +174,11 @@ public class VertxExtension implements Extension {
         @Override
         public boolean isNullable() {
             return false;
+        }
+
+        @Override
+        public String getId() {
+            return VertxExtension.class.getName() + "_" + beanTypes.iterator().next().toString();
         }
 
     }
