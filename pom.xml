@@ -39,6 +39,7 @@
 
    <modules>
       <module>core</module>
+      <module>web</module>
       <module>examples/translator</module>
    </modules>
 
