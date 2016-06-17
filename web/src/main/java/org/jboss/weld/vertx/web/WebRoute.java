@@ -31,13 +31,13 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * This annotation is used to configure a {@link Route} in more declarative way.
+ * This annotation is used to configure a {@link Route} in a declarative way.
  * <p>
- * The annotated class must implement {@link Handler} with {@link RoutingContext} as an event type (otherwise is ignored). Constructed instances are not CDI
- * contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE compoents like servlets). However, the dependency
+ * The annotated class must implement {@link Handler} with {@link RoutingContext} as an event type (otherwise it is ignored). Constructed instances are not CDI
+ * contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE components like servlets). However, the dependency
  * injection is supported.
  * <p>
- * This annotation is annotated with {@link Stereotype} to workaround the limitations of <code>annotated</code> bean discovery mode.
+ * This annotation is annotated with {@link Stereotype} to workaround the limitations of the <code>annotated</code> bean discovery mode.
  *
  * @author Martin Kouba
  * @see Router

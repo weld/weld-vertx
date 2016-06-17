@@ -109,7 +109,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        Object result1 = VertxObservers.SYNCHRONIZER.poll(60, TimeUnit.SECONDS);
+        Object result1 = VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS);
         vertx.eventBus().send(VertxObservers.TEST_DEP, "ok", (r) -> {
             if (r.succeeded()) {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());

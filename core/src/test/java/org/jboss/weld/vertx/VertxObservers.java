@@ -23,8 +23,8 @@ import static org.junit.Assert.assertNull;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
-import javax.inject.Singleton;
 
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.ReplyException;
@@ -34,7 +34,7 @@ import io.vertx.core.eventbus.ReplyFailure;
  *
  * @author Martin Kouba
  */
-@Singleton
+@ApplicationScoped
 public class VertxObservers {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();

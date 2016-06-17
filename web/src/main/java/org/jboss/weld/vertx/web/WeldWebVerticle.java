@@ -19,11 +19,33 @@ package org.jboss.weld.vertx.web;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.vertx.WeldVerticle;
 
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 
 /**
+ * This verticle extends the {@link WeldVerticle} functionality and allows to register {@link Route} handlers discovered during container initialization.
+ * <p>
+ *
+ * <pre>
+ * class MyApp {
+ *     public static void main(String[] args) {
+ *         final Vertx vertx = Vertx.vertx();
+ *         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
+ *         vertx.deployVerticle(weldVerticle, result -> {
+ *             if (result.succeeded()) {
+ *                 // Configure the router after Weld bootstrap finished
+ *                 Router router = Router.router(vertx);
+ *                 router.route().handler(BodyHandler.create());
+ *                 weldVerticle.registerRoutes(router);
+ *                 vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+ *             }
+ *         });
+ *     }
+ * }
+ * </pre>
  *
  * @author Martin Kouba
+ * @see WebRoute
  */
 public class WeldWebVerticle extends WeldVerticle {
 

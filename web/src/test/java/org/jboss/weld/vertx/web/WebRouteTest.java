@@ -52,7 +52,7 @@ public class WebRouteTest {
         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
         vertx.deployVerticle(weldVerticle, result -> {
             if (result.succeeded()) {
-                // Configure router after Weld bootstrap finished
+                // Configure the router after Weld bootstrap finished
                 Router router = Router.router(vertx);
                 router.route().handler(BodyHandler.create());
                 weldVerticle.registerRoutes(router);
