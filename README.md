@@ -50,9 +50,9 @@ See also http://weld.cdi-spec.org/news/2016/04/11/weld-meets-vertx/
 `weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
 
 ```java
-package org.jboss.weld.vertx.web;
-
 import javax.inject.Inject;
+
+import org.jboss.weld.vertx.web.WebRoute;
 
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
