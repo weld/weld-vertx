@@ -1,10 +1,10 @@
 # Weld Vert.x integration
 
-The primary purpose of `weld-vertx` is to bring CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM.
+The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM. Right now, there are two artifacts available - `weld-vertx-core` and `weld-vertx-web`.
 
 ## `weld-vertx-core`
 
-Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` allows to automatically register certain observer methods as Vert.x message consumers and also to inject relevant `io.vertx.core.Vertx` and `io.vertx.core.Context` instances into beans declaring these observers.
+Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` allows to automatically register certain observer methods as Vert.x message consumers and also to inject relevant `io.vertx.core.Vertx` and `io.vertx.core.Context` instances into beans.
 
 A simple echo message consumer could look like this:
 
@@ -47,7 +47,7 @@ See also http://weld.cdi-spec.org/news/2016/04/11/weld-meets-vertx/
 
 ## `weld-vertx-web`
 
-`weld-vertx-web` extends the `weld-vertx-core` functionality and allows to register `Route` handlers discovered during container initialization. In other words it's possible to configure a `Route` in a declarative way:
+`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
 
 ```java
 package org.jboss.weld.vertx.web;
@@ -74,6 +74,8 @@ public class HelloHandler implements Handler<RoutingContext> {
 The registered handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components). However, the dependency injection is supported.
 
 ### How does it work?
+
+The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticle`. This Verticle extends `org.jboss.weld.vertx.WeldVerticle` and provides the `WeldWebVerticle.registerRoutes(Router)` method:
 
 ```java
  class MyApp {
