@@ -2,7 +2,15 @@
 
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM. Right now, there are two artifacts available - `weld-vertx-core` and `weld-vertx-web`.
 
-## `weld-vertx-core`
+## weld-vertx-core
+
+```xml
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-core</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+```
 
 Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` allows to automatically register certain observer methods as Vert.x message consumers and also to inject relevant `io.vertx.core.Vertx` and `io.vertx.core.Context` instances into beans.
 
@@ -45,7 +53,15 @@ The central point of integration is the `org.jboss.weld.vertx.WeldVerticle`. Thi
 
 See also http://weld.cdi-spec.org/news/2016/04/11/weld-meets-vertx/
 
-## `weld-vertx-web`
+## weld-vertx-web
+
+```xml
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-web</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+```
 
 `weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
 
