@@ -1,4 +1,4 @@
-# Weld Vert.x integration
+# Weld Vert.x Extensions
 
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM. Right now, there are two artifacts available - `weld-vertx-core` and `weld-vertx-web`.
 
@@ -39,7 +39,7 @@ public void consumerWithDependencies(@Observes @VertxConsumer("test.dependencies
     statsService.log(event);
 }
 ```
-**NOTE**: If you inject a dependent bean, it will be destroyed when the invocation completes. 
+**NOTE**: If you inject a dependent bean, it will be destroyed when the invocation completes.
 
 Last but not least - an observer may also send/publish messages using the Vert.x event bus:
 
@@ -81,7 +81,7 @@ class MyApp {
              }
          });
      }
-} 
+}
 ```
 
 
@@ -130,13 +130,13 @@ The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticl
 
 ```java
  class MyApp {
- 
+
      public static void main(String[] args) {
          final Vertx vertx = Vertx.vertx();
          final WeldWebVerticle weldVerticle = new WeldWebVerticle();
-         
+
          vertx.deployVerticle(weldVerticle, result -> {
-             
+
              if (result.succeeded()) {
                  // Configure the router after Weld bootstrap finished
                  Router router = Router.router(vertx);
