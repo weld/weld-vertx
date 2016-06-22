@@ -30,6 +30,8 @@ import org.junit.runner.RunWith;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -84,5 +86,22 @@ public class WebRouteTest {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/chain").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         assertEquals("alphabravo", SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testNestedRoutes() throws InterruptedException {
+        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
+        client.get("/payments").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        String response = SYNCHRONIZER.poll(2, TimeUnit.SECONDS).toString();
+        JsonArray array = new JsonArray(response);
+        assertEquals(2, array.size());
+        JsonObject fooPayment = array.getJsonObject(0);
+        assertEquals("foo", fooPayment.getString("id"));
+        assertEquals("1", fooPayment.getString("amount"));
+        client.get("/payments/bar").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        response = SYNCHRONIZER.poll(2, TimeUnit.SECONDS).toString();
+        JsonObject barPayment = new JsonObject(response);
+        assertEquals("bar", barPayment.getString("id"));
+        assertEquals("100", barPayment.getString("amount"));
     }
 }
