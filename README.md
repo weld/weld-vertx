@@ -96,7 +96,7 @@ class MyApp {
 </dependency>
 ```
 
-### Declarative Routes
+### Define route in a declarative way
 
 `weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
 
