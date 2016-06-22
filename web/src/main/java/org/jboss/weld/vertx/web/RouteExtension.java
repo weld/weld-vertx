@@ -76,7 +76,7 @@ public class RouteExtension implements Extension {
 
     void registerRoutes(Router router) {
         for (AnnotatedType<?> annotatedType : routes) {
-            WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
+            final WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
             Route route;
             if (!webRoute.regex().isEmpty()) {
                 route = router.routeWithRegex(webRoute.httpMethod(), webRoute.regex());
@@ -97,6 +97,38 @@ public class RouteExtension implements Extension {
             } else {
                 route.handler(newHandlerInstance(annotatedType, beanManager));
             }
+            LOGGER.debug("Route registered for {0}", new Object() {
+                @Override
+                public String toString() {
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("method: ");
+                    builder.append(webRoute.httpMethod());
+                    if (!webRoute.regex().isEmpty()) {
+                        builder.append(", regex: ");
+                        builder.append(webRoute.regex());
+                    } else {
+                        builder.append(", path: ");
+                        builder.append(webRoute.value());
+                    }
+                    if (webRoute.order() != Integer.MIN_VALUE) {
+                        builder.append(", order: ");
+                        builder.append(webRoute.order());
+                    }
+                    if (!webRoute.produces().isEmpty()) {
+                        builder.append(", produces: ");
+                        builder.append(webRoute.produces());
+                    }
+                    if (!webRoute.consumes().isEmpty()) {
+                        builder.append(", consumes: ");
+                        builder.append(webRoute.consumes());
+                    }
+                    if (webRoute.blocking()) {
+                        builder.append(", blocking: true");
+                    }
+                    return builder.toString();
+                }
+
+            });
         }
     }
 

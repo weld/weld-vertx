@@ -35,9 +35,10 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * Starts Weld SE container and automatically registers {@link VertxExtension}.
+ * The central point of integration. This Verticle starts Weld SE container and automatically registers message consumers for all the relevant observer methods.
  *
  * @author Martin Kouba
+ * @see VertxExtension
  */
 public class WeldVerticle extends AbstractVerticle {
 
@@ -68,14 +69,58 @@ public class WeldVerticle extends AbstractVerticle {
         }
     }
 
+    /**
+     * Provides convenient access to beans, BeanManager and events.
+     * <p>
+     * E.g. allows to deploy Verticle instances produced/injected by Weld:
+     *
+     * <pre>
+     * &#64;Dependent
+     * class MyBeanVerticle extends AbstractVerticle {
+     *
+     *     &#64;Inject
+     *     Service service;
+     *
+     *     &#64;Override
+     *     public void start() throws Exception {
+     *         vertx.eventBus().consumer("my.address").handler(m -> m.reply(service.process(m.body())));
+     *     }
+     * }
+     *
+     * class MyApp {
+     *     public static void main(String[] args) {
+     *         final Vertx vertx = Vertx.vertx();
+     *         final WeldVerticle weldVerticle = new WeldVerticle();
+     *         vertx.deployVerticle(weldVerticle, result -> {
+     *             if (result.succeeded()) {
+     *                 // Deploy Verticle instance produced by Weld
+     *                 vertx.deployVerticle(weldVerticle.container().select(MyBeanVerticle.class).get());
+     *             }
+     *         });
+     *     }
+     * }
+     * </pre>
+     *
+     * @return the Weld container
+     * @throws IllegalStateException If the container is not initialized or already shut down
+     */
+    public WeldContainer container() {
+        checkContainer();
+        return weldContainer;
+    }
+
+    /**
+     * Subclass may override this method to customize the Weld SE container.
+     *
+     * @param weld
+     */
     protected void configureWeld(Weld weld) {
     }
 
-    protected WeldContainer container() {
-        if (weldContainer == null) {
-            throw new IllegalStateException("Weld container not initialized yet");
+    private void checkContainer() {
+        if (weldContainer == null || !weldContainer.isRunning()) {
+            throw new IllegalStateException("Weld container is not initialized or already shut down");
         }
-        return weldContainer;
     }
 
     static class VertxHandler implements Handler<Message<Object>> {
