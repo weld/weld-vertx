@@ -12,6 +12,8 @@ The primary purpose of `weld-vertx` is to bring the CDI programming model into t
 </dependency>
 ```
 
+### CDI observers as Vert.x message consumers
+
 Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` allows to automatically register certain observer methods as Vert.x message consumers and also to inject relevant `io.vertx.core.Vertx` and `io.vertx.core.Context` instances into beans.
 
 A simple echo message consumer could look like this:
@@ -47,11 +49,42 @@ public void consumerStrikesBack(@Observes @VertxConsumer("test.publish.address")
 }
 ```
 
-### How does it work?
+#### How does it work?
 
 The central point of integration is the `org.jboss.weld.vertx.WeldVerticle`. This Verticle starts Weld SE container and automatically registers `org.jboss.weld.vertx.VertxExtension` to process all observer methods and detect observers which should become message consumers. Then a special handler is registered for each address to bridge the event bus to the CDI world. Handlers use `Vertx.executeBlocking()` since we expect the code to be blocking. Later on, whenever a new message is delivered to the handler, `Event.fire()` is used to notify all relevant observers.
 
-See also http://weld.cdi-spec.org/news/2016/04/11/weld-meets-vertx/
+### CDI-powered Verticles
+
+It's also possible to deploy Verticles produced/injected by Weld, e.g.:
+
+```java
+@Dependent
+class MyBeanVerticle extends AbstractVerticle {
+
+     @Inject
+     Service service;
+
+     @Override
+     public void start() throws Exception {
+         vertx.eventBus().consumer("my.address").handler(m -> m.reply(service.process(m.body())));
+     }
+}
+
+class MyApp {
+     public static void main(String[] args) {
+         final Vertx vertx = Vertx.vertx();
+         final WeldVerticle weldVerticle = new WeldVerticle();
+         vertx.deployVerticle(weldVerticle, result -> {
+             if (result.succeeded()) {
+                 // Deploy Verticle instance produced by Weld
+                 vertx.deployVerticle(weldVerticle.container().select(MyBeanVerticle.class).get());
+             }
+         });
+     }
+} 
+```
+
+
 
 ## weld-vertx-web
 
@@ -62,6 +95,8 @@ See also http://weld.cdi-spec.org/news/2016/04/11/weld-meets-vertx/
   <version>${version.weld-vertx}</version>
 </dependency>
 ```
+
+### Declarative Routes
 
 `weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
 
@@ -89,7 +124,7 @@ public class HelloHandler implements Handler<RoutingContext> {
 
 The registered handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components). However, the dependency injection is supported.
 
-### How does it work?
+#### How does it work?
 
 The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticle`. This Verticle extends `org.jboss.weld.vertx.WeldVerticle` and provides the `WeldWebVerticle.registerRoutes(Router)` method:
 
