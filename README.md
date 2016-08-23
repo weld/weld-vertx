@@ -1,5 +1,7 @@
 # Weld Vert.x Extensions
 
+[![Travis CI Build Status](https://img.shields.io/travis/weld/weld-vertx/master.svg)](https://travis-ci.org/weld/weld-vertx)
+
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM. Right now, there are two artifacts available - `weld-vertx-core` and `weld-vertx-web`.
 
 ## weld-vertx-core
