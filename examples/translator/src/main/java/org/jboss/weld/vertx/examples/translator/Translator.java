@@ -20,9 +20,9 @@ import static org.jboss.weld.vertx.examples.translator.Addresses.TRANSLATE;
 
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.jboss.weld.vertx.VertxConsumer;
 import org.jboss.weld.vertx.VertxEvent;
@@ -36,7 +36,7 @@ import io.vertx.core.logging.LoggerFactory;
  *
  * @author Martin Kouba
  */
-@Singleton
+@ApplicationScoped
 public class Translator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Translator.class);
