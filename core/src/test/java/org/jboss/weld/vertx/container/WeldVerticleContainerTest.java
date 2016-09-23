@@ -16,11 +16,8 @@
  */
 package org.jboss.weld.vertx.container;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import org.jboss.weld.vertx.WeldVerticle;
 import org.junit.After;
@@ -29,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -46,20 +44,18 @@ public class WeldVerticleContainerTest {
     @Before
     public void init(TestContext context) throws InterruptedException {
         final WeldVerticle weldVerticle = new WeldVerticle();
+        Async weldVerticleAsync = context.async();
         vertx = Vertx.vertx();
         vertx.deployVerticle(weldVerticle, result -> {
             if (result.succeeded()) {
                 // Deploy Verticle instance produced by Weld
                 vertx.deployVerticle(weldVerticle.container().select(BeanVerticle.class).get());
-                SYNCHRONIZER.add(true);
+                weldVerticleAsync.complete();
             }
         });
         vertx.createHttpServer().requestHandler(request -> {
             request.response().end("Hello world");
-        }).listen(8080);
-        SYNCHRONIZER.poll(200, TimeUnit.SECONDS);
-        // We don't expect the tests to run in parallel
-        SYNCHRONIZER.clear();
+        }).listen(8080, context.asyncAssertSuccess());
     }
 
     @After
@@ -67,14 +63,15 @@ public class WeldVerticleContainerTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    @Test
-    public void testVerticleBeans() throws InterruptedException {
+    @Test(timeout = 2000)
+    public void testVerticleBeans(TestContext context) throws InterruptedException {
+        Async async = context.async();
         vertx.eventBus().send(BeanVerticle.class.getName(), "hello", r -> {
             if (r.succeeded()) {
-                SYNCHRONIZER.add(r.result().body());
+                context.assertEquals(SayHelloService.MESSAGE, r.result().body());
+                async.complete();
             }
         });
-        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
     }
 
 }
