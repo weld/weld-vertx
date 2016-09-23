@@ -79,9 +79,9 @@ public class RouteExtension implements Extension {
             final WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
             Route route;
             if (!webRoute.regex().isEmpty()) {
-                route = router.routeWithRegex(webRoute.httpMethod(), webRoute.regex());
+                route = router.routeWithRegex(webRoute.method(), webRoute.regex());
             } else {
-                route = router.route(webRoute.httpMethod(), webRoute.value());
+                route = router.route(webRoute.method(), webRoute.value());
             }
             if (webRoute.order() != Integer.MIN_VALUE) {
                 route.order(webRoute.order());
@@ -102,7 +102,7 @@ public class RouteExtension implements Extension {
                 public String toString() {
                     StringBuilder builder = new StringBuilder();
                     builder.append("method: ");
-                    builder.append(webRoute.httpMethod());
+                    builder.append(webRoute.method());
                     if (!webRoute.regex().isEmpty()) {
                         builder.append(", regex: ");
                         builder.append(webRoute.regex());

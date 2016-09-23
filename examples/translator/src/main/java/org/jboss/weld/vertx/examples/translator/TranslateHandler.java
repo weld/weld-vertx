@@ -12,7 +12,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
-@WebRoute(value = "/translate", httpMethod = POST)
+@WebRoute(value = "/translate", method = POST)
 public class TranslateHandler implements Handler<RoutingContext> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TranslateHandler.class.getName());

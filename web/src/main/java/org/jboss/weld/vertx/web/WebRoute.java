@@ -52,7 +52,7 @@ public @interface WebRoute {
      */
     String value();
 
-    HttpMethod httpMethod() default HttpMethod.GET;
+    HttpMethod method() default HttpMethod.GET;
 
     String regex() default "";
 
