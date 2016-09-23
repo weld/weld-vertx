@@ -48,7 +48,7 @@ public class WeldVerticleTest {
         vertx.deployVerticle(new WeldVerticle(), context.asyncAssertSuccess());
         vertx.createHttpServer().requestHandler(request -> {
             request.response().end("Hello world");
-        }).listen(8080);
+        }).listen(8080, context.asyncAssertSuccess());
         // We don't expect the tests to run in parallel
         VertxObservers.SYNCHRONIZER.clear();
     }
