@@ -6,6 +6,10 @@ The primary purpose of `weld-vertx` is to bring the CDI programming model into t
 
 ## weld-vertx-core
 
+* allows to automatically register certain observer methods as Vert.x message consumers
+* provides `@ApplicationScoped` beans for `io.vertx.core.Vertx` and `io.vertx.core.Context`
+* allows to deploy Verticles produced/injected by Weld
+
 ```xml
 <dependency>
   <groupId>org.jboss.weld.vertx</groupId>
@@ -89,6 +93,8 @@ class MyApp {
 
 
 ## weld-vertx-web
+
+* allows to define/register an `io.vertx.ext.web.Route` in a declarative way, using `@org.jboss.weld.vertx.web.WebRoute`
 
 ```xml
 <dependency>
