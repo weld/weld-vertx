@@ -19,7 +19,9 @@ package org.jboss.weld.vertx.container;
 import org.jboss.weld.vertx.WeldVerticle;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
@@ -34,25 +36,26 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class WeldVerticleContainerTest {
 
-    static final long DEFAULT_TIMEOUT = 5000;
-
     private Vertx vertx;
+
+    @Rule
+    public Timeout globalTimeout = Timeout.millis(5000);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
         final WeldVerticle weldVerticle = new WeldVerticle();
-        Async weldVerticleAsync = context.async();
+        Async async = context.async();
         vertx = Vertx.vertx();
-        vertx.deployVerticle(weldVerticle, result -> {
-            if (result.succeeded()) {
+        vertx.deployVerticle(weldVerticle, deployResult -> {
+            if (deployResult.succeeded()) {
                 // Deploy Verticle instance produced by Weld
-                vertx.deployVerticle(weldVerticle.container().select(BeanVerticle.class).get());
-                weldVerticleAsync.complete();
+                vertx.deployVerticle(weldVerticle.container().select(BeanVerticle.class).get(), (beanVerticleDeployResult) -> {
+                    if (beanVerticleDeployResult.succeeded()) {
+                        async.complete();
+                    }
+                });
             }
         });
-        vertx.createHttpServer().requestHandler(request -> {
-            request.response().end("Hello world");
-        }).listen(8080, context.asyncAssertSuccess());
     }
 
     @After
@@ -60,7 +63,7 @@ public class WeldVerticleContainerTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    @Test(timeout = DEFAULT_TIMEOUT)
+    @Test
     public void testVerticleBeans(TestContext context) throws InterruptedException {
         Async async = context.async();
         vertx.eventBus().send(BeanVerticle.class.getName(), "hello", r -> {

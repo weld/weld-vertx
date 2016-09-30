@@ -24,7 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
@@ -47,23 +49,29 @@ public class WebRouteTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
-    static final long DEFAULT_TIMEOUT = 5000;
+    static final int DEFAULT_TIMEOUT = 2000;
 
     private Vertx vertx;
+
+    @Rule
+    public Timeout globalTimeout = Timeout.millis(5000);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
         vertx = Vertx.vertx();
         Async async = context.async();
         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
-        vertx.deployVerticle(weldVerticle, result -> {
-            if (result.succeeded()) {
+        vertx.deployVerticle(weldVerticle, deploy -> {
+            if (deploy.succeeded()) {
                 // Configure the router after Weld bootstrap finished
                 Router router = Router.router(vertx);
                 router.route().handler(BodyHandler.create());
                 weldVerticle.registerRoutes(router);
-                vertx.createHttpServer().requestHandler(router::accept).listen(8080);
-                async.complete();
+                vertx.createHttpServer().requestHandler(router::accept).listen(8080, (listen) -> {
+                    if (listen.succeeded()) {
+                        async.complete();
+                    }
+                });
             }
         });
         SYNCHRONIZER.clear();

@@ -50,7 +50,7 @@
       <!-- Versions -->
       <version.weld>2.4.0.Final</version.weld>
       <version.vertx>3.2.1</version.vertx>
-      <version.junit>4.11</version.junit>
+      <version.junit>4.12</version.junit>
       <version.slf4j>1.7.10</version.slf4j>
    </properties>
 
