@@ -16,9 +16,6 @@
  */
 package org.jboss.weld.vertx.container;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import org.jboss.weld.vertx.WeldVerticle;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +34,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class WeldVerticleContainerTest {
 
-    static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
+    static final long DEFAULT_TIMEOUT = 5000;
 
     private Vertx vertx;
 
@@ -63,7 +60,7 @@ public class WeldVerticleContainerTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = DEFAULT_TIMEOUT)
     public void testVerticleBeans(TestContext context) throws InterruptedException {
         Async async = context.async();
         vertx.eventBus().send(BeanVerticle.class.getName(), "hello", r -> {

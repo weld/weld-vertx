@@ -32,6 +32,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -46,11 +47,14 @@ public class WebRouteTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
+    static final long DEFAULT_TIMEOUT = 5000;
+
     private Vertx vertx;
 
     @Before
     public void init(TestContext context) throws InterruptedException {
         vertx = Vertx.vertx();
+        Async async = context.async();
         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
         vertx.deployVerticle(weldVerticle, result -> {
             if (result.succeeded()) {
@@ -59,11 +63,9 @@ public class WebRouteTest {
                 router.route().handler(BodyHandler.create());
                 weldVerticle.registerRoutes(router);
                 vertx.createHttpServer().requestHandler(router::accept).listen(8080);
-                SYNCHRONIZER.add(true);
+                async.complete();
             }
         });
-        SYNCHRONIZER.poll(200, TimeUnit.SECONDS);
-        // We don't expect the tests to run in parallel
         SYNCHRONIZER.clear();
     }
 
@@ -76,30 +78,30 @@ public class WebRouteTest {
     public void testHelloHandler() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
         client.get("/fail/me").handler(response -> SYNCHRONIZER.add(response.statusCode())).end();
-        assertEquals(500, SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals(500, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test
     public void testOrder() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/chain").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals("alphabravo", SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("alphabravo", SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test
     public void testNestedRoutes() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/payments").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        String response = SYNCHRONIZER.poll(2, TimeUnit.SECONDS).toString();
+        String response = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
         JsonArray array = new JsonArray(response);
         assertEquals(2, array.size());
         JsonObject fooPayment = array.getJsonObject(0);
         assertEquals("foo", fooPayment.getString("id"));
         assertEquals("1", fooPayment.getString("amount"));
         client.get("/payments/bar").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        response = SYNCHRONIZER.poll(2, TimeUnit.SECONDS).toString();
+        response = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
         JsonObject barPayment = new JsonObject(response);
         assertEquals("bar", barPayment.getString("id"));
         assertEquals("100", barPayment.getString("amount"));

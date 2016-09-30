@@ -21,6 +21,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class TranslatorExampleTest {
 
+    static final long DEFAULT_TIMEOUT = 5000;
+
     private Vertx vertx;
 
     @Before
@@ -42,7 +44,7 @@ public class TranslatorExampleTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = DEFAULT_TIMEOUT)
     public void testTranslator(TestContext context) throws InterruptedException {
         Async async = context.async();
         HttpClient client = vertx.createHttpClient();

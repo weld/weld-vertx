@@ -40,6 +40,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class WeldVerticleTest {
 
+    static final long DEFAULT_TIMEOUT = 5000;
+
     private Vertx vertx;
 
     @Before
@@ -61,9 +63,9 @@ public class WeldVerticleTest {
     @Test
     public void testPingConsumer() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_PING, "hello");
-        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
         vertx.eventBus().publish(VertxObservers.TEST_PING, "hello");
-        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -73,7 +75,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        assertEquals("hello", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("hello", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -83,7 +85,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.cause());
             }
         });
-        Object cause = VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS);
+        Object cause = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         assertNotNull(cause);
         ReplyException replyException = (ReplyException) cause;
         assertEquals(10, replyException.failureCode());
@@ -94,7 +96,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.cause());
             }
         });
-        cause = VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS);
+        cause = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         assertNotNull(cause);
         replyException = (ReplyException) cause;
         assertEquals(WeldVerticle.OBSERVER_FAILURE_CODE, replyException.failureCode());
@@ -109,13 +111,13 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        Object result1 = VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS);
+        Object result1 = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         vertx.eventBus().send(VertxObservers.TEST_DEP, "ok", (r) -> {
             if (r.succeeded()) {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        Object result2 = VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS);
+        Object result2 = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         assertNotEquals(result1, result2);
     }
 
@@ -123,13 +125,13 @@ public class WeldVerticleTest {
     public void testConsumerEventBus() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_BUS, "oops");
         // cdi observer sends a message to TEST_BUS_NEXT
-        assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test
     public void testConsumerEventBusTimeout() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_BUS_TIMEOUT, "time out!");
-        assertEquals("timeout", VertxObservers.SYNCHRONIZER.poll(2, TimeUnit.SECONDS));
+        assertEquals("timeout", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
 
