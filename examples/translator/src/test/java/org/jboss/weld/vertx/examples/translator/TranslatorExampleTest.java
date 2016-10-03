@@ -1,6 +1,5 @@
 package org.jboss.weld.vertx.examples.translator;
 
-import org.jboss.weld.vertx.web.WeldWebVerticle;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,15 +27,7 @@ public class TranslatorExampleTest {
     @Before
     public void init(TestContext context) {
         vertx = Vertx.vertx();
-        Async serverVerticleAsync = context.async();
-        Async dummyDataVerticleAsync = context.async();
-        final WeldWebVerticle weldVerticle = new WeldWebVerticle();
-        vertx.deployVerticle(weldVerticle, result -> {
-            if (result.succeeded()) {
-                vertx.deployVerticle(new ServerVerticle(weldVerticle), (serverResult) -> serverVerticleAsync.complete());
-                vertx.deployVerticle(new DummyDataVerticle(), (dummyResult) -> dummyDataVerticleAsync.complete());
-            }
-        });
+        vertx.deployVerticle(new TranslatorVerticle(), context.asyncAssertSuccess());
     }
 
     @After
