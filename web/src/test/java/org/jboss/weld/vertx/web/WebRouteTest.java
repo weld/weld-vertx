@@ -17,6 +17,8 @@
 package org.jboss.weld.vertx.web;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -114,4 +116,17 @@ public class WebRouteTest {
         assertEquals("bar", barPayment.getString("id"));
         assertEquals("100", barPayment.getString("amount"));
     }
+
+    @Test
+    public void testRequestContextActive() throws InterruptedException {
+        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
+        client.get(" /request-context-active").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        String hello1 = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        assertTrue(hello1.startsWith("Hello from"));
+        client.get(" /request-context-active").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        String hello2 = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        assertTrue(hello2.startsWith("Hello from"));
+        assertNotEquals(hello1, hello2);
+    }
+
 }
