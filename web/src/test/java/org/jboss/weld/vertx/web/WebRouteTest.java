@@ -85,12 +85,19 @@ public class WebRouteTest {
     }
 
     @Test
-    public void testHelloHandler() throws InterruptedException {
+    public void testHandlers() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
-        client.get("/fail/me").handler(response -> SYNCHRONIZER.add(response.statusCode())).end();
-        assertEquals(500, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        client.post("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        client.get("/helloget").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        client.post("/helloget").handler(response -> SYNCHRONIZER.add("" + response.statusCode())).end();
+        assertEquals("404", SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        // Failures
+        client.get("/fail/me").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(response.statusCode() + ":" + b.toString()))).end();
+        assertEquals(500 + ":" + UniversalFailureHandler.TEXT, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
     @Test

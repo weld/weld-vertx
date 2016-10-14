@@ -18,6 +18,7 @@ package org.jboss.weld.vertx.web;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +37,7 @@ import javax.enterprise.inject.spi.WithAnnotations;
 import org.jboss.weld.util.reflection.HierarchyDiscovery;
 
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Route;
@@ -79,30 +81,49 @@ public class RouteExtension implements Extension {
             final WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
             Route route;
             if (!webRoute.regex().isEmpty()) {
-                route = router.routeWithRegex(webRoute.method(), webRoute.regex());
+                route = router.routeWithRegex(webRoute.regex());
+            } else if (!webRoute.value().isEmpty()) {
+                route = router.route(webRoute.value());
             } else {
-                route = router.route(webRoute.method(), webRoute.value());
+                route = router.route();
+            }
+            if (webRoute.methods().length > 0) {
+                for (HttpMethod method : webRoute.methods()) {
+                    route.method(method);
+                }
             }
             if (webRoute.order() != Integer.MIN_VALUE) {
                 route.order(webRoute.order());
             }
-            if (!webRoute.produces().isEmpty()) {
-                route.produces(webRoute.produces());
+            if (webRoute.produces().length > 0) {
+                for (String produces : webRoute.produces()) {
+                    route.produces(produces);
+                }
             }
-            if (!webRoute.consumes().isEmpty()) {
-                route.consumes(webRoute.consumes());
+            if (webRoute.consumes().length > 0) {
+                for (String consumes : webRoute.consumes()) {
+                    route.consumes(consumes);
+                }
             }
-            if (webRoute.blocking()) {
-                route.blockingHandler(newHandlerInstance(annotatedType, beanManager));
-            } else {
-                route.handler(newHandlerInstance(annotatedType, beanManager));
+            switch (webRoute.type()) {
+                case NORMAL:
+                    route.handler(newHandlerInstance(annotatedType, beanManager));
+                    break;
+                case BLOCKING:
+                    route.blockingHandler(newHandlerInstance(annotatedType, beanManager));
+                    break;
+                case FAILURE:
+                    route.failureHandler(newHandlerInstance(annotatedType, beanManager));
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported handler type: " + webRoute.type());
             }
             LOGGER.debug("Route registered for {0}", new Object() {
                 @Override
                 public String toString() {
                     StringBuilder builder = new StringBuilder();
-                    builder.append("method: ");
-                    builder.append(webRoute.method());
+                    builder.append("methods: ");
+                    builder.append(Arrays.toString(webRoute.methods()));
                     if (!webRoute.regex().isEmpty()) {
                         builder.append(", regex: ");
                         builder.append(webRoute.regex());
@@ -114,17 +135,16 @@ public class RouteExtension implements Extension {
                         builder.append(", order: ");
                         builder.append(webRoute.order());
                     }
-                    if (!webRoute.produces().isEmpty()) {
+                    if (webRoute.produces().length > 0) {
                         builder.append(", produces: ");
-                        builder.append(webRoute.produces());
+                        builder.append(Arrays.toString(webRoute.produces()));
                     }
-                    if (!webRoute.consumes().isEmpty()) {
+                    if (webRoute.consumes().length > 0) {
                         builder.append(", consumes: ");
-                        builder.append(webRoute.consumes());
+                        builder.append(Arrays.toString(webRoute.consumes()));
                     }
-                    if (webRoute.blocking()) {
-                        builder.append(", blocking: true");
-                    }
+                    builder.append(", type: ");
+                    builder.append(webRoute.type());
                     return builder.toString();
                 }
 

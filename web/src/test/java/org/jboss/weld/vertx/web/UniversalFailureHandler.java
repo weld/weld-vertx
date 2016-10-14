@@ -16,25 +16,19 @@
  */
 package org.jboss.weld.vertx.web;
 
-import static org.jboss.weld.vertx.web.WebRoute.HandlerType.BLOCKING;
-
-import javax.inject.Inject;
-
-import org.jboss.weld.context.activator.ActivateRequestContext;
+import static org.jboss.weld.vertx.web.WebRoute.HandlerType.FAILURE;
 
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
-@WebRoute(value = "/request-context-active", type = BLOCKING)
-public class RequestContextActiveHandler implements Handler<RoutingContext> {
+@WebRoute(type = FAILURE)
+public class UniversalFailureHandler implements Handler<RoutingContext> {
 
-    @Inject
-    RequestHelloService helloService;
+    static final String TEXT = "<html><body><h1>Failure</h1></body></html>";
 
-    @ActivateRequestContext
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().setStatusCode(200).end(helloService.hello());
+        ctx.response().setStatusCode(ctx.statusCode()).end(TEXT);
     }
 
 }

@@ -16,25 +16,21 @@
  */
 package org.jboss.weld.vertx.web;
 
-import static org.jboss.weld.vertx.web.WebRoute.HandlerType.BLOCKING;
-
 import javax.inject.Inject;
 
-import org.jboss.weld.context.activator.ActivateRequestContext;
-
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-@WebRoute(value = "/request-context-active", type = BLOCKING)
-public class RequestContextActiveHandler implements Handler<RoutingContext> {
+@WebRoute(value = "/helloget", methods = HttpMethod.GET)
+public class HelloGetHandler implements Handler<RoutingContext> {
 
     @Inject
-    RequestHelloService helloService;
+    SayHelloService service;
 
-    @ActivateRequestContext
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().setStatusCode(200).end(helloService.hello());
+        ctx.response().setStatusCode(200).end(service.hello());
     }
 
 }
