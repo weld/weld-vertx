@@ -118,6 +118,8 @@ class MyApp {
 ```java
 import javax.inject.Inject;
 
+import org.jboss.weld.context.activator.ActivateRequestContext;
+
 import org.jboss.weld.vertx.web.WebRoute;
 
 import io.vertx.core.Handler;
@@ -129,6 +131,7 @@ public class HelloHandler implements Handler<RoutingContext> {
     @Inject
     SayHelloService service;
 
+    @ActivateRequestContext // -> this interceptor binding may be used to activate the CDI request context within a handle() invocation
     @Override
     public void handle(RoutingContext ctx) {
         ctx.response().setStatusCode(200).end(service.hello());
