@@ -39,6 +39,8 @@ import org.jboss.weld.literal.DefaultLiteral;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.ContextInternal;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -75,14 +77,14 @@ public class VertxExtension implements Extension {
 
     public void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
         // Allow to inject Vertx used to deploy the WeldVerticle
-        event.addBean(new VertxBean<Vertx>(Vertx.class) {
+        event.addBean(new VertxBean<Vertx>(Vertx.class, VertxInternal.class) {
             @Override
             public Vertx create(CreationalContext<Vertx> creationalContext) {
                 return vertx;
             }
         });
         // Allow to inject Context of the WeldVerticle
-        event.addBean(new VertxBean<Context>(Context.class) {
+        event.addBean(new VertxBean<Context>(Context.class, ContextInternal.class) {
             @Override
             public Context create(CreationalContext<Context> creationalContext) {
                 return context;
