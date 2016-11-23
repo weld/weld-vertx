@@ -20,7 +20,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -36,6 +35,7 @@ import javax.enterprise.inject.spi.ProcessObserverMethod;
 
 import org.jboss.weld.literal.AnyLiteral;
 import org.jboss.weld.literal.DefaultLiteral;
+import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -75,19 +75,27 @@ public class VertxExtension implements Extension {
 
     public void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
         // Allow to inject Vertx used to deploy the WeldVerticle
-        event.addBean(new VertxBean<Vertx>(Vertx.class) {
+        event.addBean(new VertxBean<Vertx>(getBeanTypes(vertx.getClass(), Vertx.class)) {
             @Override
             public Vertx create(CreationalContext<Vertx> creationalContext) {
                 return vertx;
             }
         });
         // Allow to inject Context of the WeldVerticle
-        event.addBean(new VertxBean<Context>(Context.class) {
+        event.addBean(new VertxBean<Context>(getBeanTypes(context.getClass(), Context.class)) {
             @Override
             public Context create(CreationalContext<Context> creationalContext) {
                 return context;
             }
         });
+    }
+
+    private Set<Type> getBeanTypes(Class<?> implClazz, Type... types) {
+        Set<Type> beanTypes = new HashSet<>();
+        Collections.addAll(beanTypes, types);
+        // Add all the interfaces (and extended interfaces) implemented directly by the impl class
+        beanTypes.addAll(Reflections.getInterfaceClosure(implClazz));
+        return beanTypes;
     }
 
     Set<String> getConsumerAddresses() {
@@ -114,11 +122,7 @@ public class VertxExtension implements Extension {
 
         private final Set<Annotation> qualifiers;
 
-        VertxBean(Type... types) {
-            Set<Type> beanTypes = new LinkedHashSet<>();
-            for (Type type : types) {
-                beanTypes.add(type);
-            }
+        private VertxBean(Set<Type> beanTypes) {
             beanTypes.add(Object.class);
             this.beanTypes = Collections.unmodifiableSet(beanTypes);
             Set<Annotation> qualifiers = new HashSet<>();
