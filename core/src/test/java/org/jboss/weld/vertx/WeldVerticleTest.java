@@ -19,17 +19,24 @@ package org.jboss.weld.vertx;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
+
+import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.CDI;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
+import io.vertx.core.metrics.Measured;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -134,5 +141,23 @@ public class WeldVerticleTest {
         assertEquals("timeout", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
+    @Test
+    public void testVertxBean() {
+        BeanManager beanManager = CDI.current().getBeanManager();
+        Bean<?> bean = beanManager.resolve(beanManager.getBeans(Vertx.class));
+        assertTrue(bean.getTypes().contains(Vertx.class));
+        assertTrue(bean.getTypes().contains(Measured.class));
+        Class<?> vertxClass = vertx.getClass();
+        for (Class<?> intf : vertxClass.getInterfaces()) {
+            assertTrue(bean.getTypes().contains(intf));
+        }
+    }
+
+    @Test
+    public void testContextBean() {
+        BeanManager beanManager = CDI.current().getBeanManager();
+        Bean<?> bean = beanManager.resolve(beanManager.getBeans(Context.class));
+        assertTrue(bean.getTypes().contains(Context.class));
+    }
 
 }
