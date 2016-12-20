@@ -94,6 +94,7 @@ public class VertxExtension implements Extension {
     private Set<Type> getBeanTypes(Class<?> implClazz, Type... types) {
         Set<Type> beanTypes = new HashSet<>();
         Collections.addAll(beanTypes, types);
+        beanTypes.add(implClazz);
         // Add all the interfaces (and extended interfaces) implemented directly by the impl class
         beanTypes.addAll(Reflections.getInterfaceClosure(implClazz));
         return beanTypes;
