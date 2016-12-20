@@ -25,6 +25,8 @@ import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Default;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.Extension;
@@ -32,9 +34,8 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
 import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
+import javax.enterprise.util.AnnotationLiteral;
 
-import org.jboss.weld.literal.AnyLiteral;
-import org.jboss.weld.literal.DefaultLiteral;
 import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
@@ -126,8 +127,12 @@ public class VertxExtension implements Extension {
             beanTypes.add(Object.class);
             this.beanTypes = Collections.unmodifiableSet(beanTypes);
             Set<Annotation> qualifiers = new HashSet<>();
-            qualifiers.add(AnyLiteral.INSTANCE);
-            qualifiers.add(DefaultLiteral.INSTANCE);
+            qualifiers.add(new AnnotationLiteral<Any>() {
+                private static final long serialVersionUID = 1L;
+            });
+            qualifiers.add(new AnnotationLiteral<Default>() {
+                private static final long serialVersionUID = 1L;
+            });
             this.qualifiers = Collections.unmodifiableSet(qualifiers);
         }
 
@@ -182,7 +187,7 @@ public class VertxExtension implements Extension {
 
         @Override
         public String getId() {
-            return VertxExtension.class.getName() + "_" + beanTypes.iterator().next().toString();
+            return VertxExtension.class.getName() + "_" + beanTypes;
         }
 
     }
