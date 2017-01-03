@@ -4,12 +4,13 @@
 [![Maven Central](http://img.shields.io/maven-central/v/org.jboss.weld.vertx/weld-vertx-core.svg)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22weld-vertx-core%22)
 [![License](https://img.shields.io/badge/license-Apache%20License%202.0-yellow.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
-The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM. 
+The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM.
 
 Right now, there are two artifacts available:
 
 - `weld-vertx-core`
 - `weld-vertx-web`
+- `weld-vertx-service-proxy`
 
 ## weld-vertx-core
 
@@ -166,3 +167,45 @@ The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticl
      }
  }
  ```
+
+## weld-vertx-service-proxy
+
+* allows to inject and invoke service proxies (as defined in https://github.com/vert-x3/vertx-service-proxy)
+* the result handler is wrapped and executed using `ServiceProxySupport#getExecutor()` (`Vertx.executeBlocking()` by default)
+
+
+```xml
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-service-proxy</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+```
+
+**NOTE**: `weld-vertx-service-proxy` does not depend directly on `weld-vertx-core`. However, the default implementation of `org.jboss.weld.vertx.serviceproxy.ServiceProxySupport` relies on the functionality provided by `weld-vertx-core`.
+
+### Injecting service proxies
+
+A service proxy interface annotated with `io.vertx.codegen.annotations.ProxyGen` is automatically discovered and a custom bean with `@Dependent` scope and `org.jboss.weld.vertx.serviceproxy.ServiceProxy` qualifier is registered.
+
+```java
+@ApplicationScoped
+public class EchoServiceConsumer {
+
+    // Injects a service proxy for a service with the given address
+    @Inject
+    @ServiceProxy("echo-service-address")
+    EchoService service;
+
+    @Inject
+    @Echo
+    Event<String> event;
+
+    public void doEchoBusiness(String value) {
+        // By default, the result handler is executed by means of Vertx.executeBlocking()
+        // In this case, we fire a CDI event observed by EchoObserver bean
+        service.echo(value, (r) -> event.fire(r.result()));
+    }
+
+}
+```
