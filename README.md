@@ -6,11 +6,11 @@
 
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM.
 
-Right now, there are two artifacts available:
+Right now, there are three artifacts available:
 
-- `weld-vertx-core`
-- `weld-vertx-web`
-- `weld-vertx-service-proxy`
+- [weld-vertx-core](#weld-vertx-core)
+- [weld-vertx-web](#weld-vertx-web)
+- [weld-vertx-service-proxy](#weld-vertx-service-proxy)
 
 ## weld-vertx-core
 
