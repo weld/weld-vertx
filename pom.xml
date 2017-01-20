@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
    <parent>
@@ -41,6 +42,7 @@
       <module>core</module>
       <module>web</module>
       <module>service-proxy</module>
+      <module>probe</module>
       <module>examples/translator</module>
    </modules>
 
@@ -53,6 +55,7 @@
       <version.weld>2.4.1.Final</version.weld>
       <version.vertx>3.3.3</version.vertx>
       <version.junit>4.12</version.junit>
+      <version.rest.assured>3.0.1</version.rest.assured>
       <version.slf4j>1.7.10</version.slf4j>
    </properties>
 
@@ -73,6 +76,12 @@
          </dependency>
 
          <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>${version.vertx}</version>
+         </dependency>
+
+         <dependency>
             <groupId>javax.enterprise</groupId>
             <artifactId>cdi-api</artifactId>
             <version>${version.cdi-api}</version>
@@ -89,6 +98,13 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${version.junit}</version>
+            <scope>test</scope>
+         </dependency>
+
+         <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${version.rest.assured}</version>
             <scope>test</scope>
          </dependency>
 
