@@ -49,6 +49,14 @@ import io.vertx.ext.web.Router;
  */
 public class WeldWebVerticle extends WeldVerticle {
 
+    public WeldWebVerticle() {
+        super();
+    }
+
+    public WeldWebVerticle(Weld weld) {
+        super(weld);
+    }
+
     @Override
     protected void configureWeld(Weld weld) {
         weld.addExtension(new RouteExtension());

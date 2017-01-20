@@ -43,15 +43,46 @@ import io.vertx.core.logging.LoggerFactory;
 public class WeldVerticle extends AbstractVerticle {
 
     public static final int OBSERVER_FAILURE_CODE = 0x1B00;
+    
+    /**
+     * 
+     * @return a default {@link Weld} builder used to configure the Weld container
+     */
+    public static Weld createDefaultWeld() {
+        return new Weld().property(ConfigurationKey.CONCURRENT_DEPLOYMENT.get(), false);
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WeldVerticle.class.getName());
 
-    private WeldContainer weldContainer;
+    private final Weld weld;
+
+    private volatile WeldContainer weldContainer;
+
+    /**
+     * 
+     */
+    public WeldVerticle() {
+        this(null);
+    }
+
+    /**
+     * 
+     * @param weld
+     */
+    public WeldVerticle(Weld weld) {
+        this.weld = weld;
+    }
 
     @Override
     public void start() throws Exception {
         VertxExtension vertxExtension = new VertxExtension(vertx, context);
-        Weld weld = new Weld().containerId(deploymentID()).property(ConfigurationKey.CONCURRENT_DEPLOYMENT.get(), false);
+        Weld weld = this.weld;
+        if (weld == null) {
+            weld = createDefaultWeld();
+        }
+        if (weld.getContainerId() == null) {
+            weld.containerId(deploymentID());
+        }
         weld.addExtension(vertxExtension);
         configureWeld(weld);
         WeldContainer weldContainer = weld.initialize();
@@ -64,7 +95,7 @@ public class WeldVerticle extends AbstractVerticle {
 
     @Override
     public void stop() throws Exception {
-        if (weldContainer != null) {
+        if (weldContainer != null && weldContainer.isRunning()) {
             weldContainer.shutdown();
         }
     }
