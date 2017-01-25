@@ -6,11 +6,10 @@
 
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM.
 
-Right now, there are three artifacts available:
-
 - [weld-vertx-core](#weld-vertx-core)
 - [weld-vertx-web](#weld-vertx-web)
 - [weld-vertx-service-proxy](#weld-vertx-service-proxy)
+- [weld-vertx-probe](#weld-vertx-probe)
 
 ## weld-vertx-core
 
@@ -209,3 +208,21 @@ public class EchoServiceConsumer {
 
 }
 ```
+
+## weld-vertx-probe
+
+* allows to use [Probe](http://docs.jboss.org/weld/reference/latest/en-US/html/devmode.html#probe) development tool in a Vert.x application
+* depends on `weld-vertx-web`
+
+```xml
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-probe</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+```
+
+### How does it work?
+
+Just add `weld-vertx-probe` to the classpath, set the `org.jboss.weld.development` system property to `true` and use `WeldWebVerticle` to register the routes defined declaratively (as defined in [weld-vertx-web - How does it work?](#how-does-it-work-1)).
+
