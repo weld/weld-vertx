@@ -157,10 +157,7 @@ The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticl
 
              if (result.succeeded()) {
                  // Configure the router after Weld bootstrap finished
-                 Router router = Router.router(vertx);
-                 router.route().handler(BodyHandler.create());
-                 weldVerticle.registerRoutes(router);
-                 vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+                 vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080);
              }
          });
      }

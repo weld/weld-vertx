@@ -39,8 +39,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.BodyHandler;
 
 /**
  *
@@ -66,12 +64,11 @@ public class WebRouteTest {
         vertx.deployVerticle(weldVerticle, deploy -> {
             if (deploy.succeeded()) {
                 // Configure the router after Weld bootstrap finished
-                Router router = Router.router(vertx);
-                router.route().handler(BodyHandler.create());
-                weldVerticle.registerRoutes(router);
-                vertx.createHttpServer().requestHandler(router::accept).listen(8080, (listen) -> {
+                vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080, (listen) -> {
                     if (listen.succeeded()) {
                         async.complete();
+                    } else {
+                        context.fail();
                     }
                 });
             }
