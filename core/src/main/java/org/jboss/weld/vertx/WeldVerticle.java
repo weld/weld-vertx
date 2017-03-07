@@ -16,36 +16,24 @@
  */
 package org.jboss.weld.vertx;
 
-import javax.enterprise.event.Event;
-
 import org.jboss.weld.config.ConfigurationKey;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.vertx.VertxEvent.VertxMessage;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.DeliveryOptions;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.Message;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * The central point of integration. This Verticle starts Weld SE container and automatically registers message consumers for all the relevant observer methods.
+ * This Verticle starts/stops the Weld SE container.
  *
  * @author Martin Kouba
  * @see VertxExtension
  */
 public class WeldVerticle extends AbstractVerticle {
 
-    public static final int OBSERVER_FAILURE_CODE = 0x1B00;
-    
     /**
-     * 
+     *
      * @return a default {@link Weld} builder used to configure the Weld container
      */
     public static Weld createDefaultWeld() {
@@ -59,14 +47,14 @@ public class WeldVerticle extends AbstractVerticle {
     private volatile WeldContainer weldContainer;
 
     /**
-     * 
+     *
      */
     public WeldVerticle() {
         this(null);
     }
 
     /**
-     * 
+     *
      * @param weld
      */
     public WeldVerticle(Weld weld) {
@@ -75,7 +63,6 @@ public class WeldVerticle extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
-        VertxExtension vertxExtension = new VertxExtension(vertx, context);
         Weld weld = this.weld;
         if (weld == null) {
             weld = createDefaultWeld();
@@ -83,13 +70,9 @@ public class WeldVerticle extends AbstractVerticle {
         if (weld.getContainerId() == null) {
             weld.containerId(deploymentID());
         }
-        weld.addExtension(vertxExtension);
+        weld.addExtension(new VertxExtension(vertx, context));
         configureWeld(weld);
-        WeldContainer weldContainer = weld.initialize();
-        for (String address : vertxExtension.getConsumerAddresses()) {
-            vertx.eventBus().consumer(address, VertxHandler.from(vertx, weldContainer, address));
-        }
-        this.weldContainer = weldContainer;
+        this.weldContainer =  weld.initialize();
         LOGGER.info("Weld verticle started for deployment {0}", deploymentID());
     }
 
@@ -154,194 +137,5 @@ public class WeldVerticle extends AbstractVerticle {
         }
     }
 
-    static class VertxHandler implements Handler<Message<Object>> {
-
-        private final Vertx vertx;
-
-        private final Event<VertxEvent> event;
-
-        static VertxHandler from(Vertx vertx, WeldContainer weldContainer, String address) {
-            return new VertxHandler(vertx, weldContainer.event().select(VertxEvent.class, VertxConsumer.Literal.of(address)));
-        }
-
-        private VertxHandler(Vertx vertx, Event<VertxEvent> event) {
-            this.vertx = vertx;
-            this.event = event;
-        }
-
-        @Override
-        public void handle(Message<Object> message) {
-            vertx.<Object> executeBlocking(future -> {
-                try {
-                    VertxEventImpl vertxEvent = new VertxEventImpl(message, vertx.eventBus());
-                    // Synchronously notify all the observer methods for a specific address
-                    event.fire(vertxEvent);
-                    if (vertxEvent.isFailure()) {
-                        future.fail(new RecipientFailureException(vertxEvent.getFailureCode(), vertxEvent.getFailureMessage()));
-                    } else {
-                        future.complete(vertxEvent.reply);
-                    }
-                } catch (Exception e) {
-                    future.fail(e);
-                }
-            }, result -> {
-                if (result.succeeded()) {
-                    message.reply(result.result());
-                } else {
-                    Throwable cause = result.cause();
-                    if (cause instanceof RecipientFailureException) {
-                        RecipientFailureException recipientFailure = (RecipientFailureException) cause;
-                        message.fail(recipientFailure.code, recipientFailure.getMessage());
-                    } else {
-                        message.fail(OBSERVER_FAILURE_CODE, cause.getMessage());
-                    }
-                }
-            });
-        }
-
-    }
-
-    static class VertxEventImpl implements VertxEvent {
-
-        private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventImpl.class.getName());
-
-        private final EventBus eventBus;
-
-        private final String address;
-
-        private final MultiMap headers;
-
-        private final Object messageBody;
-
-        private final String replyAddress;
-
-        private Object reply;
-
-        private Integer failureCode;
-
-        private String failureMessage;
-
-        VertxEventImpl(Message<Object> message, EventBus eventBus) {
-            this.address = message.address();
-            this.headers = message.headers();
-            this.messageBody = message.body();
-            this.replyAddress = message.replyAddress();
-            this.eventBus = eventBus;
-        }
-
-        @Override
-        public String getAddress() {
-            return address;
-        }
-
-        @Override
-        public MultiMap getHeaders() {
-            return headers;
-        }
-
-        @Override
-        public Object getMessageBody() {
-            return messageBody;
-        }
-
-        @Override
-        public String getReplyAddress() {
-            return replyAddress;
-        }
-
-        @Override
-        public void setReply(Object reply) {
-            if (replyAddress == null) {
-                LOGGER.warn("The message was sent without a reply handler - the reply will be ignored");
-            }
-            this.reply = reply;
-        }
-
-        @Override
-        public void fail(int code, String message) {
-            this.failureCode = code;
-            this.failureMessage = message;
-        }
-
-        boolean isFailure() {
-            return failureCode != null;
-        }
-
-        Integer getFailureCode() {
-            return failureCode;
-        }
-
-        String getFailureMessage() {
-            return failureMessage;
-        }
-
-        @Override
-        public VertxMessage messageTo(String address) {
-            return new VertxMessageImpl(address, eventBus);
-        }
-
-    }
-
-    static class VertxMessageImpl implements VertxMessage {
-
-        private final String address;
-
-        private final EventBus eventBus;
-
-        private DeliveryOptions deliveryOptions;
-
-        VertxMessageImpl(String address, EventBus eventBus) {
-            this.address = address;
-            this.eventBus = eventBus;
-        }
-
-        @Override
-        public VertxMessage setDeliveryOptions(DeliveryOptions deliveryOptions) {
-            this.deliveryOptions = deliveryOptions;
-            return this;
-        }
-
-        @Override
-        public void send(Object message) {
-            if (deliveryOptions != null) {
-                eventBus.send(address, message);
-            } else {
-                eventBus.send(address, message, deliveryOptions);
-            }
-
-        }
-
-        @Override
-        public void send(Object message, Handler<AsyncResult<Message<Object>>> replyHandler) {
-            if (deliveryOptions != null) {
-                eventBus.send(address, message, deliveryOptions, replyHandler);
-            } else {
-                eventBus.send(address, message, replyHandler);
-            }
-        }
-
-        @Override
-        public void publish(Object message) {
-            if (deliveryOptions != null) {
-                eventBus.publish(address, message, deliveryOptions);
-            } else {
-                eventBus.publish(address, message);
-            }
-        }
-
-    }
-
-    private static class RecipientFailureException extends Exception {
-
-        private static final long serialVersionUID = 1L;
-
-        private final Integer code;
-
-        RecipientFailureException(Integer code, String message) {
-            super(message);
-            this.code = code;
-        }
-
-    }
 
 }

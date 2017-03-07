@@ -24,11 +24,14 @@ import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Default;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
+import javax.enterprise.inject.spi.AfterDeploymentValidation;
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
@@ -36,6 +39,7 @@ import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
 import javax.enterprise.util.AnnotationLiteral;
 
+import org.jboss.weld.bean.builtin.BeanManagerProxy;
 import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
@@ -44,9 +48,15 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * Detects all the observer methods that should become message consumers and adds custom beans for {@link Vertx} and {@link Context} of the {@link WeldVerticle}
+ * The central point of integration. Its task is to:
+ * <ul>
+ * <li>process CDI observer methods that should become Vert.x message consumers</li>
+ * <li>add custom beans for {@link Vertx} and {@link Context}</li>
+ * </ul>
  *
  * @author Martin Kouba
+ * @see VertxEvent
+ * @see VertxConsumer
  */
 public class VertxExtension implements Extension {
 
@@ -74,7 +84,7 @@ public class VertxExtension implements Extension {
         consumerAddresses.add(vertxAddress);
     }
 
-    public void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
+    public void registerBeans(@Observes AfterBeanDiscovery event) {
         // Allow to inject Vertx used to deploy the WeldVerticle
         event.addBean(new VertxBean<Vertx>(getBeanTypes(vertx.getClass(), Vertx.class)) {
             @Override
@@ -91,6 +101,13 @@ public class VertxExtension implements Extension {
         });
     }
 
+    public void registerEventConsumers(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager beanManager) {
+        Event<Object> event = BeanManagerProxy.unwrap(beanManager).event();
+        for (String address : consumerAddresses) {
+            vertx.eventBus().consumer(address, VertxHandler.from(vertx, event, address));
+        }
+    }
+
     private Set<Type> getBeanTypes(Class<?> implClazz, Type... types) {
         Set<Type> beanTypes = new HashSet<>();
         Collections.addAll(beanTypes, types);
@@ -98,10 +115,6 @@ public class VertxExtension implements Extension {
         // Add all the interfaces (and extended interfaces) implemented directly by the impl class
         beanTypes.addAll(Reflections.getInterfaceClosure(implClazz));
         return beanTypes;
-    }
-
-    Set<String> getConsumerAddresses() {
-        return consumerAddresses;
     }
 
     private String getVertxAddress(ObserverMethod<?> observerMethod) {

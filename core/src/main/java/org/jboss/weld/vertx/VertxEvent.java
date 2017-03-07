@@ -33,6 +33,13 @@ import io.vertx.core.eventbus.Message;
 public interface VertxEvent {
 
     /**
+     * A failure code that is used if an observer method throws exception.
+     *
+     * @see Message#fail(int, String)
+     */
+    int OBSERVER_FAILURE_CODE = 0x1B00;
+
+    /**
      *
      * @return the address the message was sent to
      * @see Message#address()

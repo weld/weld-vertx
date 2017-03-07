@@ -106,7 +106,7 @@ public class WeldVerticleTest {
         cause = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         assertNotNull(cause);
         replyException = (ReplyException) cause;
-        assertEquals(WeldVerticle.OBSERVER_FAILURE_CODE, replyException.failureCode());
+        assertEquals(VertxEvent.OBSERVER_FAILURE_CODE, replyException.failureCode());
         assertEquals("oops", replyException.getMessage());
         assertEquals(ReplyFailure.RECIPIENT_FAILURE, replyException.failureType());
     }
