@@ -48,11 +48,14 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * The central point of integration. Its task is to:
- * <ul>
- * <li>process CDI observer methods that should become Vert.x message consumers</li>
- * <li>add custom beans for {@link Vertx} and {@link Context}</li>
- * </ul>
+ * The central point of integration. Its task is to find all CDI observer methods that should become Vert.x message consumers - see also {@link VertxEvent} and
+ * {@link VertxConsumer}. And if a Vertx instance is available add custom beans for {@link Vertx} and {@link Context} and register consumers for all the
+ * addresses found.
+ *
+ * <p>
+ * {@link #registerConsumers(Vertx, Event)} could be also used after the CDI bootstrap, e.g. when a Vertx instance is only available after the CDI bootstrap
+ * finishes.
+ * </p>
  *
  * @author Martin Kouba
  * @see VertxEvent
@@ -68,13 +71,17 @@ public class VertxExtension implements Extension {
 
     private final Context context;
 
+    public VertxExtension() {
+        this(null, null);
+    }
+
     public VertxExtension(Vertx vertx, Context context) {
         this.consumerAddresses = new HashSet<>();
         this.vertx = vertx;
         this.context = context;
     }
 
-    public void detectMessageConsumers(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
+    public void findConsumerAddresses(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
         String vertxAddress = getVertxAddress(event.getObserverMethod());
         if (vertxAddress == null) {
             LOGGER.warn("VertxEvent observer found but no @VertxConsumer declared: {0}", event.getObserverMethod());
@@ -84,7 +91,11 @@ public class VertxExtension implements Extension {
         consumerAddresses.add(vertxAddress);
     }
 
-    public void registerBeans(@Observes AfterBeanDiscovery event) {
+    public void registerBeansAfterBeanDiscovery(@Observes AfterBeanDiscovery event) {
+        if (vertx == null) {
+            // Do no register beans - no Vertx instance available during bootstrap
+            return;
+        }
         // Allow to inject Vertx used to deploy the WeldVerticle
         event.addBean(new VertxBean<Vertx>(getBeanTypes(vertx.getClass(), Vertx.class)) {
             @Override
@@ -101,8 +112,13 @@ public class VertxExtension implements Extension {
         });
     }
 
-    public void registerEventConsumers(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager beanManager) {
-        Event<Object> event = BeanManagerProxy.unwrap(beanManager).event();
+    public void registerConsumersAfterDeploymentValidation(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager beanManager) {
+        if (vertx != null) {
+            registerConsumers(vertx, BeanManagerProxy.unwrap(beanManager).event());
+        }
+    }
+
+    public void registerConsumers(Vertx vertx, Event<Object> event) {
         for (String address : consumerAddresses) {
             vertx.eventBus().consumer(address, VertxHandler.from(vertx, event, address));
         }
