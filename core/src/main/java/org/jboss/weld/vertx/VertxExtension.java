@@ -81,7 +81,7 @@ public class VertxExtension implements Extension {
         this.context = context;
     }
 
-    public void findConsumerAddresses(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
+    public void processVertxEventObserver(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
         String vertxAddress = getVertxAddress(event.getObserverMethod());
         if (vertxAddress == null) {
             LOGGER.warn("VertxEvent observer found but no @VertxConsumer declared: {0}", event.getObserverMethod());
