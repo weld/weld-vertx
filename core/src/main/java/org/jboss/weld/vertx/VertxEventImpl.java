@@ -12,77 +12,86 @@ class VertxEventImpl implements VertxEvent {
 
     private final EventBus eventBus;
 
-    private final String address;
+    private final Message<Object> message;
 
-    private final MultiMap headers;
+    private Object reply;
 
-    private final Object messageBody;
-
-    private final String replyAddress;
-
-    Object reply;
-
-    private Integer failureCode;
-
-    private String failureMessage;
+    private RecipientFailure failure;
 
     VertxEventImpl(Message<Object> message, EventBus eventBus) {
-        this.address = message.address();
-        this.headers = message.headers();
-        this.messageBody = message.body();
-        this.replyAddress = message.replyAddress();
         this.eventBus = eventBus;
+        this.message = message;
     }
 
     @Override
     public String getAddress() {
-        return address;
+        return message.address();
     }
 
     @Override
     public MultiMap getHeaders() {
-        return headers;
+        return message.headers();
     }
 
     @Override
     public Object getMessageBody() {
-        return messageBody;
+        return message.body();
     }
 
     @Override
     public String getReplyAddress() {
-        return replyAddress;
+        return message.replyAddress();
     }
 
     @Override
     public void setReply(Object reply) {
-        if (replyAddress == null) {
+        if (message.replyAddress() == null) {
             LOGGER.warn("The message was sent without a reply handler - the reply will be ignored");
+        }
+        if (this.reply != null) {
+            LOGGER.warn("A reply was already set - the old value is replaced");
         }
         this.reply = reply;
     }
 
     @Override
+    public void reply(Object reply) {
+        setReply(reply);
+        // This is the only way how to abort the processing of an event
+        throw new RecipientReply();
+    }
+
+    @Override
+    public boolean isReplied() {
+        return reply != null;
+    }
+
+    @Override
     public void fail(int code, String message) {
-        this.failureCode = code;
-        this.failureMessage = message;
+        throw new RecipientFailure(code, message);
     }
 
-    boolean isFailure() {
-        return failureCode != null;
+    @Override
+    public void setFailure(int code, String message) {
+        this.failure = new RecipientFailure(code, message);
     }
 
-    Integer getFailureCode() {
-        return failureCode;
-    }
-
-    String getFailureMessage() {
-        return failureMessage;
+    @Override
+    public boolean isFailure() {
+        return failure != null;
     }
 
     @Override
     public VertxMessage messageTo(String address) {
         return new VertxMessageImpl(address, eventBus);
+    }
+
+    Object getReply() {
+        return reply;
+    }
+
+    RecipientFailure getFailure() {
+        return failure;
     }
 
 }

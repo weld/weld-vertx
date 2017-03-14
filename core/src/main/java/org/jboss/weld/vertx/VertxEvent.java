@@ -68,7 +68,10 @@ public interface VertxEvent {
     String getReplyAddress();
 
     /**
-     * If the reply address is null (point-to-point messaging without reply handler) this method is noop.
+     * Set the reply to the message. Does not abort the processing of the event. The last reply set is passed to {@link Message#reply(Object)}.
+     * <p>
+     * If the reply address is null (point-to-point messaging without reply handler) the reply is ignored.
+     * </p>
      *
      * @param reply
      * @see Message#reply(Object)
@@ -76,11 +79,47 @@ public interface VertxEvent {
     void setReply(Object reply);
 
     /**
+     * Reply to the message and abort processing of the event - no other observer methods will be called (unless the thrown {@link RecipientReply} is
+     * swallowed).
      *
+     * @param reply
+     * @see Message#reply(Object)
+     */
+    void reply(Object reply);
+
+    /**
+     * Aborts the processing of the event - no other observer methods will be called (unless the thrown {@link RecipientFailure} is swallowed).
+     *
+     * @param code
+     * @param message
+     * @see Message#fail(int, String)
+     * @throws RecipientFailure
+     */
+    void fail(int code, String message);
+
+    /**
+     * Set the failure code and message. Does not abort the processing of the event. The last code and message set are passed to
+     * {@link Message#fail(int, String)}.
+     *
+     * @param code
      * @param message
      * @see Message#fail(int, String)
      */
-    void fail(int code, String message);
+    void setFailure(int code, String message);
+
+    /**
+     *
+     * @return <code>true</code> if a failure was previously set, <code>false</code> otherwise
+     * @see #setFailure(int, String)
+     */
+    boolean isFailure();
+
+    /**
+     *
+     * @return <code>true</code> if a reply was previously set, <code>false</code> otherwise
+     * @see #setReply(Object)
+     */
+    boolean isReplied();
 
     /**
      * Send/publish messages using the Vertx event bus.

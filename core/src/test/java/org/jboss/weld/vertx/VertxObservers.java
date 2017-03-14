@@ -17,8 +17,10 @@
 package org.jboss.weld.vertx;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -61,7 +63,7 @@ public class VertxObservers {
         } else if ("exception".equals(event.getMessageBody())) {
             throw new IllegalStateException("oops");
         } else {
-            event.setReply(event.getMessageBody());
+            event.reply(event.getMessageBody());
         }
     }
 
@@ -73,6 +75,8 @@ public class VertxObservers {
         assertNotNull(coolService.getVertx().eventBus());
         assertNotNull(coolService.getContext().deploymentID());
         event.setReply(coolService.getId() + "_" + coolService.getCacheService().getId());
+        assertTrue(event.isReplied());
+        assertFalse(event.isFailure());
     }
 
     public void consumerStrikesBack(@Observes @VertxConsumer(TEST_BUS) VertxEvent event) {
