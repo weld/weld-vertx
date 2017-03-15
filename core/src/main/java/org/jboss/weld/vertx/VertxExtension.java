@@ -44,17 +44,23 @@ import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * The central point of integration. Its task is to find all CDI observer methods that should become Vert.x message consumers - see also {@link VertxEvent} and
- * {@link VertxConsumer}. And if a Vertx instance is available add custom beans for {@link Vertx} and {@link Context} and register consumers for all the
- * addresses found.
- *
+ * The central point of integration. Its task is to find all CDI observer methods that should be notified when a message is sent via {@link EventBus}. See also
+ * {@link VertxEvent} and {@link VertxConsumer}.
  * <p>
- * {@link #registerConsumers(Vertx, Event)} could be also used after the CDI bootstrap, e.g. when a Vertx instance is only available after the CDI bootstrap
- * finishes.
+ * If a {@link Vertx} instance is available:
+ * <ul>
+ * <li>add custom beans for {@link Vertx} and {@link Context}</li>
+ * <li>register consumers for all the addresses found</li>
+ * </ul>
+ * </p>
+ * <p>
+ * {@link #registerConsumers(Vertx, Event)} could be also used after the bootstrap, e.g. when a Vertx instance is only available after a CDI container is
+ * initialized.
  * </p>
  *
  * @author Martin Kouba

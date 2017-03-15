@@ -45,8 +45,10 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
+ * This extensions allows to register {@link Route} handlers discovered during container initialization.
  *
  * @author Martin Kouba
+ * @see WebRoute
  */
 public class RouteExtension implements Extension {
 

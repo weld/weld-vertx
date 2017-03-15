@@ -25,7 +25,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * This Verticle starts/stops the Weld SE container.
+ * This Verticle starts/stops the Weld SE container and registers {@link VertxExtension} automatically.
  *
  * @author Martin Kouba
  * @see VertxExtension
@@ -72,7 +72,7 @@ public class WeldVerticle extends AbstractVerticle {
         }
         weld.addExtension(new VertxExtension(vertx, context));
         configureWeld(weld);
-        this.weldContainer =  weld.initialize();
+        this.weldContainer = weld.initialize();
         LOGGER.info("Weld verticle started for deployment {0}", deploymentID());
     }
 
@@ -136,6 +136,5 @@ public class WeldVerticle extends AbstractVerticle {
             throw new IllegalStateException("Weld container is not initialized or already shut down");
         }
     }
-
 
 }
