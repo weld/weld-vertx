@@ -74,82 +74,87 @@ public class RouteExtension implements Extension {
         for (RouteHandler<?> handler : handlers) {
             handler.dispose();
         }
+        handlers.clear();
+        routes.clear();
     }
 
-    void registerRoutes(Router router) {
+    public void registerRoutes(Router router) {
         for (AnnotatedType<?> annotatedType : routes) {
-            final WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
-            Route route;
-            if (!webRoute.regex().isEmpty()) {
-                route = router.routeWithRegex(webRoute.regex());
-            } else if (!webRoute.value().isEmpty()) {
-                route = router.route(webRoute.value());
-            } else {
-                route = router.route();
-            }
-            if (webRoute.methods().length > 0) {
-                for (HttpMethod method : webRoute.methods()) {
-                    route.method(method);
-                }
-            }
-            if (webRoute.order() != Integer.MIN_VALUE) {
-                route.order(webRoute.order());
-            }
-            if (webRoute.produces().length > 0) {
-                for (String produces : webRoute.produces()) {
-                    route.produces(produces);
-                }
-            }
-            if (webRoute.consumes().length > 0) {
-                for (String consumes : webRoute.consumes()) {
-                    route.consumes(consumes);
-                }
-            }
-            switch (webRoute.type()) {
-                case NORMAL:
-                    route.handler(newHandlerInstance(annotatedType, beanManager));
-                    break;
-                case BLOCKING:
-                    route.blockingHandler(newHandlerInstance(annotatedType, beanManager));
-                    break;
-                case FAILURE:
-                    route.failureHandler(newHandlerInstance(annotatedType, beanManager));
-                    break;
-                default:
-                    throw new IllegalStateException("Unsupported handler type: " + webRoute.type());
-            }
-            LOGGER.debug("Route registered for {0}", new Object() {
-                @Override
-                public String toString() {
-                    StringBuilder builder = new StringBuilder();
-                    builder.append("methods: ");
-                    builder.append(Arrays.toString(webRoute.methods()));
-                    if (!webRoute.regex().isEmpty()) {
-                        builder.append(", regex: ");
-                        builder.append(webRoute.regex());
-                    } else {
-                        builder.append(", path: ");
-                        builder.append(webRoute.value());
-                    }
-                    if (webRoute.order() != Integer.MIN_VALUE) {
-                        builder.append(", order: ");
-                        builder.append(webRoute.order());
-                    }
-                    if (webRoute.produces().length > 0) {
-                        builder.append(", produces: ");
-                        builder.append(Arrays.toString(webRoute.produces()));
-                    }
-                    if (webRoute.consumes().length > 0) {
-                        builder.append(", consumes: ");
-                        builder.append(Arrays.toString(webRoute.consumes()));
-                    }
-                    builder.append(", type: ");
-                    builder.append(webRoute.type());
-                    return builder.toString();
-                }
-
-            });
+            processRoute(annotatedType, router);
         }
+    }
+
+    private void processRoute(AnnotatedType<?> annotatedType, Router router) {
+        WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
+        Route route;
+        if (!webRoute.regex().isEmpty()) {
+            route = router.routeWithRegex(webRoute.regex());
+        } else if (!webRoute.value().isEmpty()) {
+            route = router.route(webRoute.value());
+        } else {
+            route = router.route();
+        }
+        if (webRoute.methods().length > 0) {
+            for (HttpMethod method : webRoute.methods()) {
+                route.method(method);
+            }
+        }
+        if (webRoute.order() != Integer.MIN_VALUE) {
+            route.order(webRoute.order());
+        }
+        if (webRoute.produces().length > 0) {
+            for (String produces : webRoute.produces()) {
+                route.produces(produces);
+            }
+        }
+        if (webRoute.consumes().length > 0) {
+            for (String consumes : webRoute.consumes()) {
+                route.consumes(consumes);
+            }
+        }
+        switch (webRoute.type()) {
+            case NORMAL:
+                route.handler(newHandlerInstance(annotatedType, beanManager));
+                break;
+            case BLOCKING:
+                route.blockingHandler(newHandlerInstance(annotatedType, beanManager));
+                break;
+            case FAILURE:
+                route.failureHandler(newHandlerInstance(annotatedType, beanManager));
+                break;
+            default:
+                throw new IllegalStateException("Unsupported handler type: " + webRoute.type());
+        }
+        LOGGER.debug("Route registered for {0}", new Object() {
+            @Override
+            public String toString() {
+                StringBuilder builder = new StringBuilder();
+                builder.append("methods: ");
+                builder.append(Arrays.toString(webRoute.methods()));
+                if (!webRoute.regex().isEmpty()) {
+                    builder.append(", regex: ");
+                    builder.append(webRoute.regex());
+                } else {
+                    builder.append(", path: ");
+                    builder.append(webRoute.value());
+                }
+                if (webRoute.order() != Integer.MIN_VALUE) {
+                    builder.append(", order: ");
+                    builder.append(webRoute.order());
+                }
+                if (webRoute.produces().length > 0) {
+                    builder.append(", produces: ");
+                    builder.append(Arrays.toString(webRoute.produces()));
+                }
+                if (webRoute.consumes().length > 0) {
+                    builder.append(", consumes: ");
+                    builder.append(Arrays.toString(webRoute.consumes()));
+                }
+                builder.append(", type: ");
+                builder.append(webRoute.type());
+                return builder.toString();
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")

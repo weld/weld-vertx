@@ -71,7 +71,7 @@ public class WeldWebVerticle extends WeldVerticle {
 
     /**
      * Creates a router with {@link BodyHandler} and all discovered route handlers registered.
-     * 
+     *
      * @return a new router instance
      */
     public Router createRouter() {
