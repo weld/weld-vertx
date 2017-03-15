@@ -164,7 +164,7 @@ public class RouteExtension implements Extension {
         T instance = injectionTarget.produce(context);
         injectionTarget.inject(instance, context);
         injectionTarget.postConstruct(instance);
-        RouteHandler<T> handler = new RouteHandler<>(context, injectionTarget, instance);
+        RouteHandler<T> handler = new RouteHandler<>(annotatedType, context, injectionTarget, instance);
         handlers.add(handler);
         return (Handler<RoutingContext>) handler.instance;
     }
@@ -187,22 +187,29 @@ public class RouteExtension implements Extension {
 
     class RouteHandler<T> {
 
+        private final AnnotatedType<T> annotatedType;
+
         private final CreationalContext<T> ctx;
 
         private final InjectionTarget<T> injectionTarget;
 
         private final T instance;
 
-        RouteHandler(CreationalContext<T> ctx, InjectionTarget<T> injectionTarget, T instance) {
+        RouteHandler(AnnotatedType<T> annotatedType, CreationalContext<T> ctx, InjectionTarget<T> injectionTarget, T instance) {
+            this.annotatedType = annotatedType;
             this.ctx = ctx;
             this.injectionTarget = injectionTarget;
             this.instance = instance;
         }
 
         void dispose() {
-            injectionTarget.preDestroy(instance);
-            injectionTarget.dispose(instance);
-            ctx.release();
+            try {
+                injectionTarget.preDestroy(instance);
+                injectionTarget.dispose(instance);
+                ctx.release();
+            } catch (Exception e) {
+                LOGGER.error("Error disposing a route handler for {0}", e, annotatedType);
+            }
         }
 
     }

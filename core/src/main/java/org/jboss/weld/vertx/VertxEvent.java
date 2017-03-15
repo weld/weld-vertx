@@ -84,6 +84,7 @@ public interface VertxEvent {
      *
      * @param reply
      * @see Message#reply(Object)
+     * @throws RecipientReply
      */
     void reply(Object reply);
 
