@@ -21,6 +21,8 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.spi.CreationalContext;
@@ -45,6 +47,7 @@ import org.jboss.weld.util.reflection.Reflections;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -68,6 +71,10 @@ import io.vertx.core.logging.LoggerFactory;
  * @see VertxConsumer
  */
 public class VertxExtension implements Extension {
+
+    public static final String CONSUMER_REGISTRATION_TIMEOUT_KEY = "weld.vertx.consumer.reg.timeout";
+
+    public static final long DEFAULT_CONSUMER_REGISTRATION_TIMEOUT = 10000l;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VertxExtension.class.getName());
 
@@ -125,8 +132,32 @@ public class VertxExtension implements Extension {
     }
 
     public void registerConsumers(Vertx vertx, Event<Object> event) {
+        CountDownLatch latch = new CountDownLatch(consumerAddresses.size());
         for (String address : consumerAddresses) {
-            vertx.eventBus().consumer(address, VertxHandler.from(vertx, event, address));
+            MessageConsumer<?> consumer = vertx.eventBus().consumer(address, VertxHandler.from(vertx, event, address));
+            consumer.completionHandler(ar -> {
+                if (ar.succeeded()) {
+                    LOGGER.debug("Sucessfully registered event consumer for {0}", address);
+                    latch.countDown();
+                } else {
+                    LOGGER.error("Cannot register event consumer for {0}", ar.cause(), address);
+                }
+            });
+        }
+        Context context = this.context;
+        if (context == null && vertx != null) {
+            context = vertx.getOrCreateContext();
+        }
+        long timeout = context != null ? context.config().getLong(CONSUMER_REGISTRATION_TIMEOUT_KEY, DEFAULT_CONSUMER_REGISTRATION_TIMEOUT)
+                : DEFAULT_CONSUMER_REGISTRATION_TIMEOUT;
+        try {
+            if (!latch.await(timeout, TimeUnit.MILLISECONDS)) {
+                throw new IllegalStateException(String.format("Message consumers not registered within %s ms [registered: %s, total: %s]", timeout, latch.getCount(),
+                        consumerAddresses.size()));
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
