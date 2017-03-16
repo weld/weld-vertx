@@ -18,6 +18,7 @@ package org.jboss.weld.vertx.serviceproxy;
 
 import org.jboss.weld.vertx.WeldVerticle;
 
+import io.vertx.core.Future;
 import io.vertx.serviceproxy.ProxyHelper;
 
 /**
@@ -27,8 +28,8 @@ import io.vertx.serviceproxy.ProxyHelper;
 public class EchoServiceVerticle extends WeldVerticle {
 
     @Override
-    public void start() throws Exception {
-        super.start();
+    public void start(Future<Void> startFuture) throws Exception {
+        super.start(startFuture);
         ProxyHelper.registerService(EchoService.class, vertx, new EchoServiceImpl(), "echo-service-address");
     }
 

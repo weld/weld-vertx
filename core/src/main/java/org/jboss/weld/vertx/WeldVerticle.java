@@ -21,6 +21,7 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -62,24 +63,51 @@ public class WeldVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start() throws Exception {
-        Weld weld = this.weld;
-        if (weld == null) {
-            weld = createDefaultWeld();
-        }
+    public void start(Future<Void> startFuture) throws Exception {
+        Weld weld = this.weld != null ? this.weld : createDefaultWeld();
         if (weld.getContainerId() == null) {
             weld.containerId(deploymentID());
         }
         weld.addExtension(new VertxExtension(vertx, context));
         configureWeld(weld);
-        this.weldContainer = weld.initialize();
-        LOGGER.info("Weld verticle started for deployment {0}", deploymentID());
+        // Bootstrap can take some time to complete
+        vertx.executeBlocking(future -> {
+            try {
+                this.weldContainer = weld.initialize();
+                future.complete();
+            } catch (Exception e) {
+                future.fail(e);
+            }
+        }, result -> {
+            if (result.succeeded()) {
+                LOGGER.info("Weld verticle started for deployment {0}", deploymentID());
+                startFuture.complete();
+            } else {
+                startFuture.fail(result.cause());
+            }
+        });
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop(Future<Void> stopFuture) throws Exception {
         if (weldContainer != null && weldContainer.isRunning()) {
-            weldContainer.shutdown();
+            // Shutdown can take some time to complete
+            vertx.executeBlocking(future -> {
+                try {
+                    weldContainer.shutdown();
+                    future.complete();
+                } catch (Exception e) {
+                    future.fail(e);
+                }
+            }, result -> {
+                if (result.succeeded()) {
+                    stopFuture.complete();
+                } else {
+                    stopFuture.fail(result.cause());
+                }
+            });
+        } else {
+            stopFuture.complete();
         }
     }
 
