@@ -6,14 +6,14 @@
 
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the Vert.x ecosystem, i.e. to extend the Vert.x tool-kit for building reactive applications on the JVM.
 
-- [weld-vertx-core](#weld-vertx-core)
-- [weld-vertx-web](#weld-vertx-web)
-- [weld-vertx-service-proxy](#weld-vertx-service-proxy)
-- [weld-vertx-probe](#weld-vertx-probe)
+- [Core - weld-vertx-core](#weld-vertx-core)
+- [Web - weld-vertx-web](#weld-vertx-web)
+- [Service Proxy - weld-vertx-service-proxy](#weld-vertx-service-proxy)
+- [Probe - weld-vertx-probe](#weld-vertx-probe)
 
 ## weld-vertx-core
 
-* allows to automatically register certain observer methods as Vert.x message consumers
+* makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus
 * provides `@ApplicationScoped` beans for `io.vertx.core.Vertx` and `io.vertx.core.Context`
 * allows to deploy Verticles produced/injected by Weld
 
@@ -25,29 +25,27 @@ The primary purpose of `weld-vertx` is to bring the CDI programming model into t
 </dependency>
 ```
 
-### CDI observers as Vert.x message consumers
+### CDI observers and Vert.x message consumers
 
-Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` allows to automatically register certain observer methods as Vert.x message consumers and also to inject relevant `io.vertx.core.Vertx` and `io.vertx.core.Context` instances into beans.
-
-A simple echo message consumer could look like this:
+Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus. A simple echo message consumer example:
 
 ```java
 import org.jboss.weld.vertx.VertxConsumer;
 import org.jboss.weld.vertx.VertxEvent;
 
 class Foo {
-    public void echoConsumer(@Observes @VertxConsumer("test.echo.address") VertxEvent event) {
+    // VertxConsumer - a qualifier used to specify the address of the message consumer
+    // VertxEvent - a Vert.x message wrapper
+    void echoConsumer(@Observes @VertxConsumer("test.echo.address") VertxEvent event) {
         event.setReply(event.getMessageBody());
     }
 }
 ```
-* `@VertxConsumer` - a qualifier used to specify the address the consumer will be registered to: test.echo.address
-* `VertxEvent` - a wrapper of a Vert.x message
 
 Since we’re working with a regular observer method, additional parameters may be declared (next to the event parameter). These parameters are injection points. So it’s easy to declare a message consumer dependencies:
 
 ```java
-public void consumerWithDependencies(@Observes @VertxConsumer("test.dependencies.address") VertxEvent event, CoolService coolService, StatsService statsService) {
+void consumerWithDependencies(@Observes @VertxConsumer("test.dependencies.address") VertxEvent event, CoolService coolService, StatsService statsService) {
     coolService.process(event.getMessageBody());
     statsService.log(event);
 }
@@ -57,14 +55,23 @@ public void consumerWithDependencies(@Observes @VertxConsumer("test.dependencies
 Last but not least - an observer may also send/publish messages using the Vert.x event bus:
 
 ```java
-public void consumerStrikesBack(@Observes @VertxConsumer("test.publish.address") VertxEvent event) {
+void consumerStrikesBack(@Observes @VertxConsumer("test.publish.address") VertxEvent event) {
     event.messageTo("test.huhu.address").publish("huhu");
 }
 ```
 
 #### How does it work?
 
-The central point of integration is the `org.jboss.weld.vertx.WeldVerticle`. This Verticle starts Weld SE container and automatically registers `org.jboss.weld.vertx.VertxExtension` to process all observer methods and detect observers which should become message consumers. Then a special handler is registered for each address to bridge the event bus to the CDI world. Handlers use `Vertx.executeBlocking()` since we expect the code to be blocking. Later on, whenever a new message is delivered to the handler, `Event.fire()` is used to notify all relevant observers.
+The central point of integration is the `org.jboss.weld.vertx.VertxExtension`.
+Its primary task is to find all CDI observer methods that should be notified when a message is sent via `io.vertx.core.eventbus.EventBus`.
+
+If a `Vertx` instance is available during CDI bootstrap, then `VertxExtension` also:
+* registers a Vert.x handler for each address found (whenever a new message is delivered to the handler, `Event.fire()` is used to notify all observers bound to a specific address)
+* adds custom beans for `io.vertx.core.Vertx` and `io.vertx.core.Context` (thereby allowing to inject relevant instances into beans)
+
+NOTE: Handlers use `Vertx.executeBlocking()` since we expect the code to be blocking.
+
+`org.jboss.weld.vertx.WeldVerticle` starts/stops the Weld SE container and registers `VertxExtension` automatically. However, `VertxExtension.registerConsumers(Vertx, Event<Object>)` could be also used after the bootstrap, e.g. when a Vertx instance is only available after a CDI container is initialized.
 
 ### CDI-powered Verticles
 
