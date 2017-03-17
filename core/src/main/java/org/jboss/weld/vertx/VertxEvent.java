@@ -25,7 +25,9 @@ import io.vertx.core.eventbus.Message;
 /**
  * Vertx {@link Message} wrapper.
  * <p>
- * An observer method must declare an event parameter of the type {@link VertxEvent} in order to be recognized as a Vertx message consumer.
+ * An observer method must declare an event parameter of the type {@link VertxEvent} with {@link VertxConsumer} qualifier in order to be notified when a message
+ * is sent via {@link io.vertx.core.eventbus.EventBus}.
+ * </p>
  *
  * @author Martin Kouba
  * @see VertxConsumer
