@@ -138,7 +138,7 @@ public class HelloHandler implements Handler<RoutingContext> {
     @Inject
     SayHelloService service;
 
-    @ActivateRequestContext // -> this interceptor binding may be used to activate the CDI request context within a handle() invocation
+    @ActivateRequestContext // -> this interceptor binding is used to activate the CDI request context within a handle() invocation
     @Override
     public void handle(RoutingContext ctx) {
         ctx.response().setStatusCode(200).end(service.hello());
