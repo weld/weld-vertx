@@ -70,25 +70,20 @@ public interface VertxEvent {
     String getReplyAddress();
 
     /**
-     * Set the reply to the message. Does not abort the processing of the event. The last reply set is passed to {@link Message#reply(Object)}.
+     * Set the reply to the message. Does not abort the processing of the event - other observer methods will be notified. The first reply set is passed to
+     * {@link Message#reply(Object)}.
      * <p>
      * If the reply address is null (point-to-point messaging without reply handler) the reply is ignored.
+     * </p>
+     * <p>
+     * An observer is encouraged to call {@link #fail(int, String)} if it needs to set the reply and this method returns <code>false</code>.
      * </p>
      *
      * @param reply
      * @see Message#reply(Object)
+     * @return <tt>true</tt> if the reply was sucessfully set
      */
-    void setReply(Object reply);
-
-    /**
-     * Reply to the message and abort processing of the event - no other observer methods will be called (unless the thrown {@link RecipientReply} is
-     * swallowed).
-     *
-     * @param reply
-     * @see Message#reply(Object)
-     * @throws RecipientReply
-     */
-    void reply(Object reply);
+    boolean setReply(Object reply);
 
     /**
      * Aborts the processing of the event - no other observer methods will be called (unless the thrown {@link RecipientFailure} is swallowed).
@@ -99,23 +94,6 @@ public interface VertxEvent {
      * @throws RecipientFailure
      */
     void fail(int code, String message);
-
-    /**
-     * Set the failure code and message. Does not abort the processing of the event. The last code and message set are passed to
-     * {@link Message#fail(int, String)}.
-     *
-     * @param code
-     * @param message
-     * @see Message#fail(int, String)
-     */
-    void setFailure(int code, String message);
-
-    /**
-     *
-     * @return <code>true</code> if a failure was previously set, <code>false</code> otherwise
-     * @see #setFailure(int, String)
-     */
-    boolean isFailure();
 
     /**
      *

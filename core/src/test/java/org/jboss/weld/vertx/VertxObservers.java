@@ -63,7 +63,7 @@ public class VertxObservers {
         } else if ("exception".equals(event.getMessageBody())) {
             throw new IllegalStateException("oops");
         } else {
-            event.reply(event.getMessageBody());
+            event.setReply(event.getMessageBody());
         }
     }
 
@@ -76,7 +76,6 @@ public class VertxObservers {
         assertNotNull(coolService.getContext().deploymentID());
         event.setReply(coolService.getId() + "_" + coolService.getCacheService().getId());
         assertTrue(event.isReplied());
-        assertFalse(event.isFailure());
     }
 
     public void consumerStrikesBack(@Observes @VertxConsumer(TEST_BUS) VertxEvent event) {

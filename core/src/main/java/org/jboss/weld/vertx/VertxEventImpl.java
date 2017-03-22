@@ -16,8 +16,6 @@ class VertxEventImpl implements VertxEvent {
 
     private Object reply;
 
-    private RecipientFailure failure;
-
     VertxEventImpl(Message<Object> message, EventBus eventBus) {
         this.eventBus = eventBus;
         this.message = message;
@@ -44,21 +42,16 @@ class VertxEventImpl implements VertxEvent {
     }
 
     @Override
-    public void setReply(Object reply) {
+    public boolean setReply(Object reply) {
         if (message.replyAddress() == null) {
             LOGGER.warn("The message was sent without a reply handler - the reply will be ignored");
         }
         if (this.reply != null) {
             LOGGER.warn("A reply was already set - the old value is replaced");
+            return false;
         }
         this.reply = reply;
-    }
-
-    @Override
-    public void reply(Object reply) {
-        setReply(reply);
-        // This is the only way how to abort the processing of an event
-        throw new RecipientReply();
+        return true;
     }
 
     @Override
@@ -72,26 +65,12 @@ class VertxEventImpl implements VertxEvent {
     }
 
     @Override
-    public void setFailure(int code, String message) {
-        this.failure = new RecipientFailure(code, message);
-    }
-
-    @Override
-    public boolean isFailure() {
-        return failure != null;
-    }
-
-    @Override
     public VertxMessage messageTo(String address) {
         return new VertxMessageImpl(address, eventBus);
     }
 
     Object getReply() {
         return reply;
-    }
-
-    RecipientFailure getFailure() {
-        return failure;
     }
 
 }

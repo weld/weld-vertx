@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 
 /**
+ * An instance of this handler is registered per each address found by {@link org.jboss.weld.vertx.VertxExtension}}.
  *
  * @author Martin Kouba
  */
@@ -32,17 +33,9 @@ class VertxHandler implements Handler<Message<Object>> {
             try {
                 // Synchronously notify all the observer methods for a specific address
                 event.fire(vertxEvent);
-                if (vertxEvent.isFailure()) {
-                    future.fail(vertxEvent.getFailure());
-                } else {
-                    future.complete(vertxEvent.getReply());
-                }
+                future.complete(vertxEvent.getReply());
             } catch (Exception e) {
-                if (e instanceof RecipientReply) {
-                    future.complete(vertxEvent.getReply());
-                } else {
-                    future.fail(e);
-                }
+                future.fail(e);
             }
         }, result -> {
             if (result.succeeded()) {
