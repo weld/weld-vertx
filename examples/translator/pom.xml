@@ -4,7 +4,7 @@
       <groupId>org.jboss.weld.vertx</groupId>
       <artifactId>weld-vertx-parent</artifactId>
       <relativePath>../../pom.xml</relativePath>
-      <version>1.0.0.CR6</version>
+      <version>1.0.0-SNAPSHOT</version>
    </parent>
 
    <groupId>org.jboss.weld.vertx.examples</groupId>
