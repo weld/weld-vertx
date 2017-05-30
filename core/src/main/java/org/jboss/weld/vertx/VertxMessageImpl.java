@@ -30,9 +30,9 @@ class VertxMessageImpl implements VertxMessage {
     @Override
     public void send(Object message) {
         if (deliveryOptions != null) {
-            eventBus.send(address, message);
-        } else {
             eventBus.send(address, message, deliveryOptions);
+        } else {
+            eventBus.send(address, message);
         }
     }
 
