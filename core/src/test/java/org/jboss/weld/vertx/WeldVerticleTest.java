@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Context;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
@@ -133,6 +134,10 @@ public class WeldVerticleTest {
         vertx.eventBus().send(VertxObservers.TEST_BUS, "oops");
         // cdi observer sends a message to TEST_BUS_NEXT
         assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        vertx.eventBus().send(VertxObservers.TEST_BUS_OPTIONS, "ignored");
+        Object headers = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertNotNull(headers);
+        assertEquals("bar", ((MultiMap) headers).get("foo"));
     }
 
     @Test

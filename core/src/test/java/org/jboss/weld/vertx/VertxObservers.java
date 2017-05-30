@@ -17,7 +17,6 @@
 package org.jboss.weld.vertx;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +45,8 @@ public class VertxObservers {
     static final String TEST_DEP = "test.dependencies";
     static final String TEST_BUS = "test.bus";
     static final String TEST_BUS_NEXT = "test.bus.next";
+    static final String TEST_BUS_OPTIONS = "test.bus.options";
+    static final String TEST_BUS_OPTIONS_NEXT = "test.bus.options.next";
     static final String TEST_BUS_TIMEOUT = "test.bus.timeout";
     static final String TEST_SLOW_HANDLER = "test.slow.handler";
 
@@ -84,6 +85,17 @@ public class VertxObservers {
             if (r.succeeded())
                 SYNCHRONIZER.add("huhu");
         });
+    }
+
+    public void consumerStrikesBackWithDeliveryOptions(@Observes @VertxConsumer(TEST_BUS_OPTIONS) VertxEvent event) {
+        assertEquals(TEST_BUS_OPTIONS, event.getAddress());
+        event.messageTo(TEST_BUS_OPTIONS_NEXT).setDeliveryOptions(new DeliveryOptions().addHeader("foo", "bar")).send("ping");
+    }
+
+    public void consumerOptionsNext(@Observes @VertxConsumer(TEST_BUS_OPTIONS_NEXT) VertxEvent event) {
+        assertEquals(TEST_BUS_OPTIONS_NEXT, event.getAddress());
+        assertNull(event.getReplyAddress());
+        SYNCHRONIZER.add(event.getHeaders());
     }
 
     public void consumerNext(@Observes @VertxConsumer(TEST_BUS_NEXT) VertxEvent event) {
