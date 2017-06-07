@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
    <parent>
@@ -42,7 +43,6 @@
       <module>web</module>
       <module>service-proxy</module>
       <module>probe</module>
-      <module>examples/translator</module>
    </modules>
 
    <properties>
@@ -50,9 +50,9 @@
       <maven.compiler.source>1.8</maven.compiler.source>
       <maven.compiler.target>1.8</maven.compiler.target>
       <!-- Versions -->
-      <version.cdi>1.2</version.cdi>
+      <version.cdi12>1.2</version.cdi12>
       <version.cdi2>2.0</version.cdi2>
-      <version.weld>2.4.3.Final</version.weld>
+      <version.weld2>2.4.3.Final</version.weld2>
       <version.weld3>3.0.0.Final</version.weld3>
       <version.vertx>3.4.1</version.vertx>
       <version.junit>4.12</version.junit>
@@ -142,15 +142,50 @@
    </build>
 
    <profiles>
-
+      <profile>
+         <id>examples</id>
+         <activation>
+            <activeByDefault>false</activeByDefault>
+            <property>
+               <name>!release</name>
+            </property>
+         </activation>
+         <modules>
+            <module>examples/translator</module>
+         </modules>
+      </profile>
+      <profile>
+         <id>release</id>
+         <activation>
+            <property>
+               <name>release</name>
+            </property>
+         </activation>
+      </profile>
       <profile>
          <id>weld3</id>
+         <activation>
+            <property>
+               <name>!weld2</name>
+            </property>
+         </activation>
          <properties>
             <version.weld>${version.weld3}</version.weld>
             <version.cdi>${version.cdi2}</version.cdi>
          </properties>
       </profile>
-
+      <profile>
+         <id>weld2</id>
+         <activation>
+            <property>
+               <name>weld2</name>
+            </property>
+         </activation>
+         <properties>
+            <version.weld>${version.weld2}</version.weld>
+            <version.cdi>${version.cdi12}</version.cdi>
+         </properties>
+      </profile>
    </profiles>
 
 </project>
