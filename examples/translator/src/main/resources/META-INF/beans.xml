@@ -4,9 +4,4 @@
                            http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
    version="1.1" bean-discovery-mode="annotated">
 
-   <scan>
-      <!-- https://issues.jboss.org/browse/WELD-2318 -->
-      <exclude name="org.jboss.weld.probe.*" />
-   </scan>
-
 </beans>
