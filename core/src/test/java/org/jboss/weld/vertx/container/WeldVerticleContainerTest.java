@@ -16,6 +16,7 @@
  */
 package org.jboss.weld.vertx.container;
 
+import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.WeldVerticle;
 import org.junit.After;
 import org.junit.Before;
@@ -39,7 +40,7 @@ public class WeldVerticleContainerTest {
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(5000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {

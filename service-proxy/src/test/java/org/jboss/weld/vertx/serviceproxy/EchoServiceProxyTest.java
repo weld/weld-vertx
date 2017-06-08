@@ -6,6 +6,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.weld.vertx.Timeouts;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,14 +27,12 @@ public class EchoServiceProxyTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
-    static final int DEFAULT_TIMEOUT = 2000;
-
     private Vertx vertx;
 
     private EchoServiceVerticle echoVerticle;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(50000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
@@ -55,7 +54,7 @@ public class EchoServiceProxyTest {
     public void testEchoServiceProxy() throws InterruptedException {
         String message = "foooo";
         echoVerticle.container().select(EchoServiceConsumer.class).get().doEchoBusiness(message);
-        assertEquals(message, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(message, poll());
     }
 
     @Test
@@ -64,7 +63,11 @@ public class EchoServiceProxyTest {
         // Lookup service proxy with ServiceProxy qualifier literal
         echoVerticle.container().select(EchoService.class, ServiceProxy.Literal.of("echo-service-address")).get().echo(message,
                 (r) -> SYNCHRONIZER.add(r.result()));
-        assertEquals(message, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(message, poll());
+    }
+
+    private Object poll() throws InterruptedException {
+        return SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
 }

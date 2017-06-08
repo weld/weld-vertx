@@ -6,6 +6,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.jboss.weld.vertx.WeldVerticle.createDefaultWeld;
 
 import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.web.WeldWebVerticle;
 import org.junit.After;
 import org.junit.Before;
@@ -23,7 +24,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
 /**
- * 
+ *
  * @author Martin Kouba
  */
 @RunWith(VertxUnitRunner.class)
@@ -34,7 +35,7 @@ public class ProbeHandlersTest {
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(500000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {

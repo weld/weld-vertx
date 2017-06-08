@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.web.HelloHandler;
 import org.jboss.weld.vertx.web.RouteExtension;
 import org.jboss.weld.vertx.web.SayHelloService;
@@ -43,12 +44,10 @@ import io.vertx.ext.web.handler.BodyHandler;
  */
 public class RouteExtensionTest {
 
-    static final long DEFAULT_TIMEOUT = 5000;
-
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(5000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Test
     public void testHandlers() throws InterruptedException {
@@ -62,7 +61,7 @@ public class RouteExtensionTest {
             try {
                 weld.select(RouteExtension.class).get().registerRoutes(router);
                 client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-                assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+                assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
             } finally {
                 vertx.close();
             }

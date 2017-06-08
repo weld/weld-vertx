@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.VertxExtension;
 import org.junit.Test;
 
@@ -35,8 +36,6 @@ import io.vertx.core.Vertx;
  */
 public class RegisterConsumersAfterBootstrapTest {
 
-    static final long DEFAULT_TIMEOUT = 5000;
-
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
     @Test
@@ -47,7 +46,7 @@ public class RegisterConsumersAfterBootstrapTest {
             try {
                 weld.select(VertxExtension.class).get().registerConsumers(vertx, weld.event());
                 vertx.eventBus().send(HelloObserver.HELLO_ADDRESS, "hello");
-                assertEquals("hello", SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+                assertEquals("hello", SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
             } finally {
                 vertx.close();
             }

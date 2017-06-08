@@ -48,8 +48,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class WeldVerticleTest {
 
-    static final long DEFAULT_TIMEOUT = 5000;
-
     private Vertx vertx;
 
     @Before
@@ -71,9 +69,9 @@ public class WeldVerticleTest {
     @Test
     public void testPingConsumer() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_PING, "hello");
-        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("pong", poll());
         vertx.eventBus().publish(VertxObservers.TEST_PING, "hello");
-        assertEquals("pong", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("pong", poll());
     }
 
     @Test
@@ -83,7 +81,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        assertEquals("hello", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("hello", poll());
     }
 
     @Test
@@ -93,7 +91,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.cause());
             }
         });
-        Object cause = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        Object cause = poll();
         assertNotNull(cause);
         ReplyException replyException = (ReplyException) cause;
         assertEquals(10, replyException.failureCode());
@@ -104,7 +102,7 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.cause());
             }
         });
-        cause = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        cause = poll();
         assertNotNull(cause);
         replyException = (ReplyException) cause;
         assertEquals(VertxEvent.OBSERVER_FAILURE_CODE, replyException.failureCode());
@@ -119,13 +117,13 @@ public class WeldVerticleTest {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        Object result1 = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        Object result1 = poll();
         vertx.eventBus().send(VertxObservers.TEST_DEP, "ok", (r) -> {
             if (r.succeeded()) {
                 VertxObservers.SYNCHRONIZER.add(r.result().body());
             }
         });
-        Object result2 = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        Object result2 = poll();
         assertNotEquals(result1, result2);
     }
 
@@ -133,9 +131,9 @@ public class WeldVerticleTest {
     public void testConsumerEventBus() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_BUS, "oops");
         // cdi observer sends a message to TEST_BUS_NEXT
-        assertEquals("huhu", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("huhu", poll());
         vertx.eventBus().send(VertxObservers.TEST_BUS_OPTIONS, "ignored");
-        Object headers = VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        Object headers = poll();
         assertNotNull(headers);
         assertEquals("bar", ((MultiMap) headers).get("foo"));
     }
@@ -143,7 +141,7 @@ public class WeldVerticleTest {
     @Test
     public void testConsumerEventBusTimeout() throws InterruptedException {
         vertx.eventBus().send(VertxObservers.TEST_BUS_TIMEOUT, "time out!");
-        assertEquals("timeout", VertxObservers.SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("timeout", poll());
     }
 
     @Test
@@ -163,6 +161,10 @@ public class WeldVerticleTest {
         BeanManager beanManager = CDI.current().getBeanManager();
         Bean<?> bean = beanManager.resolve(beanManager.getBeans(Context.class));
         assertTrue(bean.getTypes().contains(Context.class));
+    }
+
+    private Object poll() throws InterruptedException {
+        return VertxObservers.SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.weld.vertx.Timeouts;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,12 +50,10 @@ public class WebRouteTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
-    static final int DEFAULT_TIMEOUT = 2000;
-
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(5000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
@@ -85,37 +84,37 @@ public class WebRouteTest {
     public void testHandlers() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(SayHelloService.MESSAGE, poll());
         client.post("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(SayHelloService.MESSAGE, poll());
         client.get("/helloget").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(SayHelloService.MESSAGE, poll());
         client.post("/helloget").handler(response -> SYNCHRONIZER.add("" + response.statusCode())).end();
-        assertEquals("404", SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("404", poll());
         // Failures
         client.get("/fail/me").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(response.statusCode() + ":" + b.toString()))).end();
-        assertEquals(500 + ":" + UniversalFailureHandler.TEXT, SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(500 + ":" + UniversalFailureHandler.TEXT, poll());
     }
 
     @Test
     public void testOrder() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/chain").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals("alphabravo", SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals("alphabravo", poll());
     }
 
     @Test
     public void testNestedRoutes() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/payments").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        String response = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        String response = poll().toString();
         JsonArray array = new JsonArray(response);
         assertEquals(2, array.size());
         JsonObject fooPayment = array.getJsonObject(0);
         assertEquals("foo", fooPayment.getString("id"));
         assertEquals("1", fooPayment.getString("amount"));
         client.get("/payments/bar").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        response = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        response = poll().toString();
         JsonObject barPayment = new JsonObject(response);
         assertEquals("bar", barPayment.getString("id"));
         assertEquals("100", barPayment.getString("amount"));
@@ -125,12 +124,16 @@ public class WebRouteTest {
     public void testRequestContextActive() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get(" /request-context-active").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        String hello1 = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        String hello1 = poll().toString();
         assertTrue(hello1.startsWith("Hello from"));
         client.get(" /request-context-active").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        String hello2 = SYNCHRONIZER.poll(DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).toString();
+        String hello2 = poll().toString();
         assertTrue(hello2.startsWith("Hello from"));
         assertNotEquals(hello1, hello2);
+    }
+
+    private Object poll() throws InterruptedException {
+        return SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
 }
