@@ -61,4 +61,25 @@ class PaymentResource {
 
     }
 
+    // This must be ignored
+    @WebRoute("/payments/inner")
+    class InnerClassHandler implements Handler<RoutingContext> {
+
+        @Override
+        public void handle(RoutingContext ctx) {
+            ctx.response().setStatusCode(200).end("OK");
+        }
+
+    }
+
+    // This must be ignored
+    @WebRoute("/payments/string")
+    static class WrongParameterHandler implements Handler<String> {
+
+        @Override
+        public void handle(String ctx) {
+        }
+
+    }
+
 }

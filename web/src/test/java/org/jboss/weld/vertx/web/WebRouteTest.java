@@ -118,6 +118,11 @@ public class WebRouteTest {
         JsonObject barPayment = new JsonObject(response);
         assertEquals("bar", barPayment.getString("id"));
         assertEquals("100", barPayment.getString("amount"));
+        // Test ignored routes
+        client.get("/payments/inner").handler(r -> SYNCHRONIZER.add("" + r.statusCode())).end();
+        assertEquals("404", poll());
+        client.get("/payments/string").handler(r -> SYNCHRONIZER.add("" + r.statusCode())).end();
+        assertEquals("404", poll());
     }
 
     @Test

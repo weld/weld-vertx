@@ -35,6 +35,7 @@ import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.jboss.weld.util.reflection.HierarchyDiscovery;
+import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
@@ -172,6 +173,10 @@ public class RouteExtension implements Extension {
     }
 
     private boolean isRouteHandler(AnnotatedType<?> annotatedType) {
+        if (!Reflections.isTopLevelOrStaticNestedClass(annotatedType.getJavaClass())) {
+            LOGGER.warn("Ignoring {0} - class annotated with @WebRoute must be top-level or static nested class", annotatedType.getJavaClass());
+            return false;
+        }
         Set<Type> types = new HierarchyDiscovery(annotatedType.getBaseType()).getTypeClosure();
         for (Type type : types) {
             if (type instanceof ParameterizedType) {
@@ -184,6 +189,7 @@ public class RouteExtension implements Extension {
                 }
             }
         }
+        LOGGER.warn("Ignoring {0} - class annotated with @WebRoute must implement io.vertx.core.Handler<RoutingContext>", annotatedType.getJavaClass());
         return false;
     }
 
