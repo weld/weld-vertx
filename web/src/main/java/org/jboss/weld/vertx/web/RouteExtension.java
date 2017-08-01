@@ -16,9 +16,9 @@
  */
 package org.jboss.weld.vertx.web;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -61,9 +61,9 @@ public class RouteExtension implements Extension {
 
     private BeanManager beanManager;
 
-    void findRoutes(@Observes @WithAnnotations(WebRoute.class) ProcessAnnotatedType<?> event, BeanManager beanManager) {
+    void findRoutes(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<?> event, BeanManager beanManager) {
         AnnotatedType<?> annotatedType = event.getAnnotatedType();
-        if (annotatedType.isAnnotationPresent(WebRoute.class) && isRouteHandler(annotatedType)) {
+        if ((annotatedType.isAnnotationPresent(WebRoute.class) || annotatedType.isAnnotationPresent(WebRoutes.class)) && isRouteHandler(annotatedType)) {
             LOGGER.debug("Route handler found: {0}", annotatedType);
             routes.add(annotatedType);
         }
@@ -83,12 +83,23 @@ public class RouteExtension implements Extension {
 
     public void registerRoutes(Router router) {
         for (AnnotatedType<?> annotatedType : routes) {
-            processRoute(annotatedType, router);
+            processRouteType(annotatedType, router);
         }
     }
 
-    private void processRoute(AnnotatedType<?> annotatedType, Router router) {
-        WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
+    private void processRouteType(AnnotatedType<?> annotatedType, Router router) {
+        WebRoute[] webRoutes = getWebRoutes(annotatedType);
+        if (webRoutes.length == 0) {
+            LOGGER.warn("No @WebRoute annotation found on {0}", annotatedType);
+            return;
+        }
+        Handler<RoutingContext> handler = newHandlerInstance(annotatedType, beanManager);
+        for (WebRoute webRoute : webRoutes) {
+            addRoute(router, handler, webRoute);
+        }
+    }
+
+    private void addRoute(Router router, Handler<RoutingContext> handler, WebRoute webRoute) {
         Route route;
         if (!webRoute.regex().isEmpty()) {
             route = router.routeWithRegex(webRoute.regex());
@@ -117,47 +128,31 @@ public class RouteExtension implements Extension {
         }
         switch (webRoute.type()) {
             case NORMAL:
-                route.handler(newHandlerInstance(annotatedType, beanManager));
+                route.handler(handler);
                 break;
             case BLOCKING:
-                route.blockingHandler(newHandlerInstance(annotatedType, beanManager));
+                route.blockingHandler(handler);
                 break;
             case FAILURE:
-                route.failureHandler(newHandlerInstance(annotatedType, beanManager));
+                route.failureHandler(handler);
                 break;
             default:
                 throw new IllegalStateException("Unsupported handler type: " + webRoute.type());
         }
-        LOGGER.debug("Route registered for {0}", new Object() {
-            @Override
-            public String toString() {
-                StringBuilder builder = new StringBuilder();
-                builder.append("methods: ");
-                builder.append(Arrays.toString(webRoute.methods()));
-                if (!webRoute.regex().isEmpty()) {
-                    builder.append(", regex: ");
-                    builder.append(webRoute.regex());
-                } else {
-                    builder.append(", path: ");
-                    builder.append(webRoute.value());
-                }
-                if (webRoute.order() != Integer.MIN_VALUE) {
-                    builder.append(", order: ");
-                    builder.append(webRoute.order());
-                }
-                if (webRoute.produces().length > 0) {
-                    builder.append(", produces: ");
-                    builder.append(Arrays.toString(webRoute.produces()));
-                }
-                if (webRoute.consumes().length > 0) {
-                    builder.append(", consumes: ");
-                    builder.append(Arrays.toString(webRoute.consumes()));
-                }
-                builder.append(", type: ");
-                builder.append(webRoute.type());
-                return builder.toString();
-            }
-        });
+        LOGGER.debug("Route registered for {0}", webRoute);
+    }
+
+    private WebRoute[] getWebRoutes(AnnotatedType<?> annotatedType) {
+        WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
+        if (webRoute != null) {
+            return new WebRoute[] { webRoute };
+        }
+        Annotation container = annotatedType.getAnnotation(WebRoutes.class);
+        if (container != null) {
+            WebRoutes webRoutes = (WebRoutes) container;
+            return webRoutes.value();
+        }
+        return new WebRoute[] {};
     }
 
     @SuppressWarnings("unchecked")

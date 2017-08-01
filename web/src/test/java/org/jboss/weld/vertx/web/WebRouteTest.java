@@ -137,6 +137,15 @@ public class WebRouteTest {
         assertNotEquals(hello1, hello2);
     }
 
+    @Test
+    public void testRepeatingHandler() throws InterruptedException {
+        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
+        client.get("/path-1").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals("oops", poll());
+        client.get("/path-2").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals("oops", poll());
+    }
+
     private Object poll() throws InterruptedException {
         return SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }

@@ -19,6 +19,7 @@ package org.jboss.weld.vertx.web;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -31,25 +32,30 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * This annotation is used to configure a {@link Route} in a declarative way.
+ * This annotation is used to configure a {@link Route} in a declarative way. It is repeatable - if multiple annotations are declared on a handler class a
+ * single handler instance is used for multiple routes.
+ *
  * <p>
- * The annotated class must:
- * <ul>
- * <li>not be an inner class</li>
- * <li>implement {@link Handler} with {@link RoutingContext} as an event type</li>
- * </ul>
- * ,otherwise it is ignored.
+ * The annotated class must not be an inner class and must implement {@link Handler} with {@link RoutingContext} as an event type, otherwise it is ignored.
+ * </p>
+ *
  * <p>
- * Constructed instances are not CDI contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE components like
- * servlets). However, dependency injection, interceptors and decorators are supported.
+ * Handler instances are not CDI contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE components like servlets).
+ * However, dependency injection, interceptors and decorators are supported.
+ * </p>
+ *
  * <p>
  * This annotation is annotated with {@link Stereotype} to workaround the limitations of the <code>annotated</code> bean discovery mode.
+ * </p>
+ *
  * <p>
  * If both {@link #value()} and {@link #regex()} are empty strings a route that matches all requests or failures is created.
+ * </p>
  *
  * @author Martin Kouba
  * @see Router
  */
+@Repeatable(WebRoutes.class)
 @Retention(RUNTIME)
 @Target(TYPE)
 @Stereotype
