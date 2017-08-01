@@ -124,11 +124,8 @@ class MyApp {
 
 ```java
 import javax.inject.Inject;
-
 import org.jboss.weld.context.activator.ActivateRequestContext;
-
 import org.jboss.weld.vertx.web.WebRoute;
-
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -149,9 +146,33 @@ public class HelloHandler implements Handler<RoutingContext> {
 
 The registered handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components). However, the dependency injection is supported.
 
+`@WebRoute` is a repeatable annotation.
+If multiple annotations are declared on a handler class a single handler instance is used for multiple routes:
+
+```java
+import org.jboss.weld.vertx.web.WebRoute;
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
+
+@WebRoute("/hello")
+@WebRoute("/bye")
+public class SuperHandler implements Handler<RoutingContext> {
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        // This method will be invoked upon the same handler instance for both routes
+        ctx.response().setStatusCode(200).end("I'm super!");
+    }
+
+}
+```
+
 #### How does it work?
 
-The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticle`. This Verticle extends `org.jboss.weld.vertx.WeldVerticle` and provides the `WeldWebVerticle.registerRoutes(Router)` method:
+The central point of the module is the `org.jboss.weld.vertx.web.RouteExtension`.
+Its primary task is to find all classes annotated with `@WebRoute` and register routes through `RouteExtension.registerRoutes(Router)`.
+
+`org.jboss.weld.vertx.web.WeldWebVerticle` extends `org.jboss.weld.vertx.WeldVerticle`, registers `RouteExtension` automatically, and also provides the `WeldWebVerticle.registerRoutes(Router)` method (which delegates to `RouteExtension`):
 
 ```java
  class MyApp {
@@ -159,9 +180,7 @@ The central point of integration is the `org.jboss.weld.vertx.web.WeldWebVerticl
      public static void main(String[] args) {
          final Vertx vertx = Vertx.vertx();
          final WeldWebVerticle weldVerticle = new WeldWebVerticle();
-
          vertx.deployVerticle(weldVerticle, result -> {
-
              if (result.succeeded()) {
                  // Configure the router after Weld bootstrap finished
                  vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080);
