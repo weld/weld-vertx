@@ -120,31 +120,44 @@ class MyApp {
 
 ### Define route in a declarative way
 
-`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way:
+`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way - using `org.jboss.weld.vertx.web.WebRoute` annotation:
 
 ```java
-import javax.inject.Inject;
-import org.jboss.weld.context.activator.ActivateRequestContext;
 import org.jboss.weld.vertx.web.WebRoute;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
-@WebRoute("/hello")
+@WebRoute("/helloworld") // Matches all HTTP methods
+public class HelloWorldHandler implements Handler<RoutingContext> {
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().setStatusCode(200).end("Hello world!");
+    }
+}
+```
+Handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components). 
+However, dependency injection and interception is supported:
+
+```java
+import static org.jboss.weld.vertx.web.WebRoute.HandlerType.BLOCKING;
+import javax.inject.Inject;
+import javax.enterprise.context.control.ActivateRequestContext;
+...
+
+@WebRoute("/hello", type = BLOCKING) // A blocking request handler
 public class HelloHandler implements Handler<RoutingContext> {
 
     @Inject
     SayHelloService service;
 
-    @ActivateRequestContext // -> this interceptor binding is used to activate the CDI request context within a handle() invocation
+    @ActivateRequestContext // This interceptor binding is used to activate the CDI request context within a handle() invocation
     @Override
     public void handle(RoutingContext ctx) {
         ctx.response().setStatusCode(200).end(service.hello());
     }
-
 }
 ```
-
-The registered handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components). However, the dependency injection is supported.
 
 `@WebRoute` is a repeatable annotation.
 If multiple annotations are declared on a handler class a single handler instance is used for multiple routes:
@@ -152,9 +165,10 @@ If multiple annotations are declared on a handler class a single handler instanc
 ```java
 import org.jboss.weld.vertx.web.WebRoute;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-@WebRoute("/hello")
+@WebRoute("/hello", methods = HttpMethod.GET)
 @WebRoute("/bye")
 public class SuperHandler implements Handler<RoutingContext> {
 
@@ -163,7 +177,6 @@ public class SuperHandler implements Handler<RoutingContext> {
         // This method will be invoked upon the same handler instance for both routes
         ctx.response().setStatusCode(200).end("I'm super!");
     }
-
 }
 ```
 
