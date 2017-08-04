@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
+import javax.enterprise.inject.spi.Annotated;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.BeforeShutdown;
@@ -55,17 +56,20 @@ public class RouteExtension implements Extension {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RouteExtension.class.getName());
 
-    private final List<AnnotatedType<?>> routes = new LinkedList<>();
+    private final List<AnnotatedType<?>> handlerTypes = new LinkedList<>();
 
-    private final List<RouteHandler<?>> handlers = new LinkedList<>();
+    private final List<RouteHandler<?>> handlerInstances = new LinkedList<>();
 
     private BeanManager beanManager;
 
-    void findRoutes(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<?> event, BeanManager beanManager) {
+    void processHandlerAnnotatedType(
+            @Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<? extends Handler<RoutingContext>> event,
+            BeanManager beanManager) {
         AnnotatedType<?> annotatedType = event.getAnnotatedType();
-        if ((annotatedType.isAnnotationPresent(WebRoute.class) || annotatedType.isAnnotationPresent(WebRoutes.class)) && isRouteHandler(annotatedType)) {
+        // Double check the type
+        if (isWebRoute(annotatedType) && isRouteHandler(annotatedType)) {
             LOGGER.debug("Route handler found: {0}", annotatedType);
-            routes.add(annotatedType);
+            handlerTypes.add(annotatedType);
         }
     }
 
@@ -74,20 +78,20 @@ public class RouteExtension implements Extension {
     }
 
     void beforeShutdown(@Observes BeforeShutdown event) {
-        for (RouteHandler<?> handler : handlers) {
+        for (RouteHandler<?> handler : handlerInstances) {
             handler.dispose();
         }
-        handlers.clear();
-        routes.clear();
+        handlerInstances.clear();
+        handlerTypes.clear();
     }
 
     public void registerRoutes(Router router) {
-        for (AnnotatedType<?> annotatedType : routes) {
-            processRouteType(annotatedType, router);
+        for (AnnotatedType<?> annotatedType : handlerTypes) {
+            processHandlerType(annotatedType, router);
         }
     }
 
-    private void processRouteType(AnnotatedType<?> annotatedType, Router router) {
+    private void processHandlerType(AnnotatedType<?> annotatedType, Router router) {
         WebRoute[] webRoutes = getWebRoutes(annotatedType);
         if (webRoutes.length == 0) {
             LOGGER.warn("No @WebRoute annotation found on {0}", annotatedType);
@@ -142,12 +146,12 @@ public class RouteExtension implements Extension {
         LOGGER.debug("Route registered for {0}", webRoute);
     }
 
-    private WebRoute[] getWebRoutes(AnnotatedType<?> annotatedType) {
-        WebRoute webRoute = annotatedType.getAnnotation(WebRoute.class);
+    private WebRoute[] getWebRoutes(Annotated annotated) {
+        WebRoute webRoute = annotated.getAnnotation(WebRoute.class);
         if (webRoute != null) {
             return new WebRoute[] { webRoute };
         }
-        Annotation container = annotatedType.getAnnotation(WebRoutes.class);
+        Annotation container = annotated.getAnnotation(WebRoutes.class);
         if (container != null) {
             WebRoutes webRoutes = (WebRoutes) container;
             return webRoutes.value();
@@ -163,8 +167,12 @@ public class RouteExtension implements Extension {
         injectionTarget.inject(instance, context);
         injectionTarget.postConstruct(instance);
         RouteHandler<T> handler = new RouteHandler<>(annotatedType, context, injectionTarget, instance);
-        handlers.add(handler);
+        handlerInstances.add(handler);
         return (Handler<RoutingContext>) handler.instance;
+    }
+
+    private boolean isWebRoute(Annotated annotated) {
+        return annotated.isAnnotationPresent(WebRoute.class) || annotated.isAnnotationPresent(WebRoutes.class);
     }
 
     private boolean isRouteHandler(AnnotatedType<?> annotatedType) {

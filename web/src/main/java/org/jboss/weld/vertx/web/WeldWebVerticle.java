@@ -64,6 +64,7 @@ public class WeldWebVerticle extends WeldVerticle {
      * Registers all the route handlers discovered.
      *
      * @param router
+     * @throws IllegalStateException If the container is not initialized or already shut down
      */
     public void registerRoutes(Router router) {
         container().getBeanManager().getExtension(RouteExtension.class).registerRoutes(router);
@@ -73,6 +74,7 @@ public class WeldWebVerticle extends WeldVerticle {
      * Creates a router with {@link BodyHandler} and all discovered route handlers registered.
      *
      * @return a new router instance
+     * @throws IllegalStateException If the container is not initialized or already shut down
      */
     public Router createRouter() {
         Router router = Router.router(vertx);
