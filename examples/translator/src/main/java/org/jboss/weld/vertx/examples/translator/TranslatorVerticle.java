@@ -21,8 +21,6 @@ import org.jboss.weld.vertx.web.WeldWebVerticle;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Verticle;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.BodyHandler;
 
 /**
  * {@link Verticle} responsible for starting the application.
@@ -37,10 +35,7 @@ public class TranslatorVerticle extends AbstractVerticle {
         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
         vertx.deployVerticle(weldVerticle, r -> {
             if (r.succeeded()) {
-                Router router = Router.router(vertx);
-                router.route().handler(BodyHandler.create());
-                weldVerticle.registerRoutes(router);
-                vertx.createHttpServer().requestHandler(router::accept).listen(8080, (listen) -> {
+                vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080, (listen) -> {
                     if (listen.succeeded()) {
                         vertx.deployVerticle(new DummyDataVerticle(), (dummy) -> {
                             if (dummy.failed()) {
@@ -54,7 +49,7 @@ public class TranslatorVerticle extends AbstractVerticle {
                     }
                 });
             } else {
-                startFuture.fail("Weld verticle failure");
+                startFuture.fail("Weld verticle failure: " + r.cause());
             }
         });
 

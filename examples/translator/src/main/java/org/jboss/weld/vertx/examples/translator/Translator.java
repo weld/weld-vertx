@@ -33,6 +33,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
+ * This bean implements translator business logic, i.e. parse the sentence and attempt to translate each part of the sentence.
  *
  * @author Martin Kouba
  */
