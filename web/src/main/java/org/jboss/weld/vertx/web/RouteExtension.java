@@ -135,7 +135,8 @@ public class RouteExtension implements Extension {
                 route.handler(handler);
                 break;
             case BLOCKING:
-                route.blockingHandler(handler);
+                // We don't mind if blocking handlers are executed in parallel
+                route.blockingHandler(handler, false);
                 break;
             case FAILURE:
                 route.failureHandler(handler);

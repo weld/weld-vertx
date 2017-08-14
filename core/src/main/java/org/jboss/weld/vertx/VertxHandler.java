@@ -28,6 +28,8 @@ class VertxHandler implements Handler<Message<Object>> {
 
     @Override
     public void handle(Message<Object> message) {
+        // Notification is potentially a blocking code
+        // The execution of the blocking code is not ordered - see Vertx.executeBlocking(Handler<Future<T>>, boolean, Handler<AsyncResult<T>>) javadoc
         vertx.<Object> executeBlocking(future -> {
             VertxEventImpl vertxEvent = new VertxEventImpl(message, vertx.eventBus());
             try {
@@ -37,7 +39,7 @@ class VertxHandler implements Handler<Message<Object>> {
             } catch (Exception e) {
                 future.fail(e);
             }
-        }, result -> {
+        }, false, result -> {
             if (result.succeeded()) {
                 message.reply(result.result());
             } else {

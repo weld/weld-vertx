@@ -45,12 +45,13 @@ public interface ServiceProxySupport {
     }
 
     /**
+     * By default, the service result handler is executed as blocking code.
      *
      * @return the executor used to execute a service result handler
+     * @see Vertx#executeBlocking(io.vertx.core.Handler, boolean, io.vertx.core.Handler)
      */
     default Executor getExecutor() {
         return new Executor() {
-
             @Override
             public void execute(Runnable command) {
                 getVertx().executeBlocking((f) -> {
@@ -60,7 +61,7 @@ public interface ServiceProxySupport {
                     } catch (Exception e) {
                         f.fail(e);
                     }
-                }, null);
+                }, false, null);
             }
         };
     }
