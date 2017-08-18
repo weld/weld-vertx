@@ -151,6 +151,7 @@
          </activation>
          <modules>
             <module>examples/translator</module>
+            <module>examples/hello</module>
          </modules>
       </profile>
       <profile>

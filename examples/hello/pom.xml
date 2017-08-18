@@ -1,0 +1,86 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>org.jboss.weld.vertx</groupId>
+      <artifactId>weld-vertx-parent</artifactId>
+      <relativePath>../../pom.xml</relativePath>
+      <version>1.1.1-SNAPSHOT</version>
+   </parent>
+
+   <groupId>org.jboss.weld.vertx.examples</groupId>
+   <artifactId>weld-vertx-hello-example</artifactId>
+
+   <dependencies>
+
+      <dependency>
+         <groupId>org.jboss.weld.vertx</groupId>
+         <artifactId>weld-vertx-web</artifactId>
+         <version>${project.version}</version>
+      </dependency>
+
+      <!-- Test dependencies -->
+      <dependency>
+         <groupId>io.vertx</groupId>
+         <artifactId>vertx-unit</artifactId>
+      </dependency>
+
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+      </dependency>
+
+   </dependencies>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <executions>
+               <execution>
+                  <id>default</id>
+                  <phase>package</phase>
+                  <goals>
+                     <goal>shade</goal>
+                  </goals>
+                  <configuration>
+                     <transformers>
+                        <transformer
+                           implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                           <manifestEntries>
+                              <Main-Class>org.jboss.weld.vertx.examples.hello.HelloMain</Main-Class>
+                           </manifestEntries>
+                        </transformer>
+                        <transformer
+                           implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                     </transformers>
+                     <shadedArtifactAttached>true</shadedArtifactAttached>
+                     <finalName>weld-vertx-hello-example-shaded</finalName>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+      </plugins>
+   </build>
+
+   <profiles>
+      <!-- Use together with -Dorg.jboss.weld.development=true -->
+      <profile>
+         <id>devmode</id>
+         <activation>
+            <property>
+               <name>devmode</name>
+            </property>
+         </activation>
+         <dependencies>
+            <dependency>
+               <groupId>org.jboss.weld.vertx</groupId>
+               <artifactId>weld-vertx-probe</artifactId>
+               <version>${project.version}</version>
+            </dependency>
+         </dependencies>
+      </profile>
+   </profiles>
+
+</project>
