@@ -1,8 +1,7 @@
 # Weld Vert.x Extensions
-
-[![Travis CI Build Status](https://img.shields.io/travis/weld/weld-vertx/master.svg)](https://travis-ci.org/weld/weld-vertx)
 <!-- See also https://github.com/badges/shields/issues/1046 -->
 <!--[![Maven Central](http://img.shields.io/maven-central/v/org.jboss.weld.vertx/weld-vertx-core.svg)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22weld-vertx-core%22)-->
+[![Travis CI Build Status](https://img.shields.io/travis/weld/weld-vertx/master.svg)](https://travis-ci.org/weld/weld-vertx)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.jboss.weld.vertx/weld-vertx-core/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22weld-vertx-core%22)
 [![License](https://img.shields.io/badge/license-Apache%20License%202.0-yellow.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
