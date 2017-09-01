@@ -56,20 +56,22 @@ public class RouteExtension implements Extension {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RouteExtension.class.getName());
 
-    private final List<AnnotatedType<?>> handlerTypes = new LinkedList<>();
+    private final List<AnnotatedType<? extends Handler<RoutingContext>>> handlerTypes = new LinkedList<>();
 
-    private final List<RouteHandler<?>> handlerInstances = new LinkedList<>();
+    private final List<HandlerInstance<?>> handlerInstances = new LinkedList<>();
 
     private BeanManager beanManager;
 
-    void processHandlerAnnotatedType(
-            @Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<? extends Handler<RoutingContext>> event,
-            BeanManager beanManager) {
-        AnnotatedType<?> annotatedType = event.getAnnotatedType();
-        // Double check the type
+    // Implementation note - ProcessAnnotatedType<? extends Handler<RoutingContext>> is more correct but prevents Weld from using
+    // FastProcessAnnotatedTypeResolver
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    void processHandlerAnnotatedType(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<? extends Handler> event) {
+        AnnotatedType<? extends Handler> annotatedType = event.getAnnotatedType();
+        // Double check the handler type
         if (isWebRoute(annotatedType) && isRouteHandler(annotatedType)) {
             LOGGER.debug("Route handler found: {0}", annotatedType);
-            handlerTypes.add(annotatedType);
+            // At this point it is safe to cast the annotated type
+            handlerTypes.add((AnnotatedType<? extends Handler<RoutingContext>>) annotatedType);
         }
     }
 
@@ -78,7 +80,7 @@ public class RouteExtension implements Extension {
     }
 
     void beforeShutdown(@Observes BeforeShutdown event) {
-        for (RouteHandler<?> handler : handlerInstances) {
+        for (HandlerInstance<?> handler : handlerInstances) {
             handler.dispose();
         }
         handlerInstances.clear();
@@ -86,18 +88,20 @@ public class RouteExtension implements Extension {
     }
 
     public void registerRoutes(Router router) {
-        for (AnnotatedType<?> annotatedType : handlerTypes) {
+        for (AnnotatedType<? extends Handler<RoutingContext>> annotatedType : handlerTypes) {
             processHandlerType(annotatedType, router);
         }
     }
 
-    private void processHandlerType(AnnotatedType<?> annotatedType, Router router) {
+    private void processHandlerType(AnnotatedType<? extends Handler<RoutingContext>> annotatedType, Router router) {
         WebRoute[] webRoutes = getWebRoutes(annotatedType);
         if (webRoutes.length == 0) {
             LOGGER.warn("No @WebRoute annotation found on {0}", annotatedType);
             return;
         }
-        Handler<RoutingContext> handler = newHandlerInstance(annotatedType, beanManager);
+        HandlerInstance<?> handlerInstance = new HandlerInstance<>(annotatedType, beanManager);
+        handlerInstances.add(handlerInstance);
+        Handler<RoutingContext> handler = handlerInstance.instance;
         for (WebRoute webRoute : webRoutes) {
             addRoute(router, handler, webRoute);
         }
@@ -160,18 +164,6 @@ public class RouteExtension implements Extension {
         return new WebRoute[] {};
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Handler<RoutingContext> newHandlerInstance(AnnotatedType<T> annotatedType, BeanManager beanManager) {
-        InjectionTarget<T> injectionTarget = beanManager.getInjectionTargetFactory(annotatedType).createInjectionTarget(null);
-        CreationalContext<T> context = beanManager.createCreationalContext(null);
-        T instance = injectionTarget.produce(context);
-        injectionTarget.inject(instance, context);
-        injectionTarget.postConstruct(instance);
-        RouteHandler<T> handler = new RouteHandler<>(annotatedType, context, injectionTarget, instance);
-        handlerInstances.add(handler);
-        return (Handler<RoutingContext>) handler.instance;
-    }
-
     private boolean isWebRoute(Annotated annotated) {
         return annotated.isAnnotationPresent(WebRoute.class) || annotated.isAnnotationPresent(WebRoutes.class);
     }
@@ -197,28 +189,30 @@ public class RouteExtension implements Extension {
         return false;
     }
 
-    class RouteHandler<T> {
+    class HandlerInstance<T extends Handler<RoutingContext>> {
 
         private final AnnotatedType<T> annotatedType;
 
-        private final CreationalContext<T> ctx;
+        private final CreationalContext<T> creationalContext;
 
         private final InjectionTarget<T> injectionTarget;
 
         private final T instance;
 
-        RouteHandler(AnnotatedType<T> annotatedType, CreationalContext<T> ctx, InjectionTarget<T> injectionTarget, T instance) {
+        HandlerInstance(AnnotatedType<T> annotatedType, BeanManager beanManager) {
             this.annotatedType = annotatedType;
-            this.ctx = ctx;
-            this.injectionTarget = injectionTarget;
-            this.instance = instance;
+            this.injectionTarget = beanManager.getInjectionTargetFactory(annotatedType).createInjectionTarget(null);
+            this.creationalContext = beanManager.createCreationalContext(null);
+            this.instance = injectionTarget.produce(creationalContext);
+            injectionTarget.inject(instance, creationalContext);
+            injectionTarget.postConstruct(instance);
         }
 
-        void dispose() {
+        private void dispose() {
             try {
                 injectionTarget.preDestroy(instance);
                 injectionTarget.dispose(instance);
-                ctx.release();
+                creationalContext.release();
             } catch (Exception e) {
                 LOGGER.error("Error disposing a route handler for {0}", e, annotatedType);
             }
