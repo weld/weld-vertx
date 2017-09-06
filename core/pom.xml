@@ -21,6 +21,11 @@
          <artifactId>vertx-core</artifactId>
       </dependency>
 
+      <dependency>
+         <groupId>me.escoffier.vertx</groupId>
+         <artifactId>vertx-completable-future</artifactId>
+      </dependency>
+
       <!-- Test dependencies -->
       <dependency>
          <groupId>io.vertx</groupId>
@@ -33,9 +38,13 @@
       </dependency>
 
       <dependency>
+         <groupId>org.awaitility</groupId>
+         <artifactId>awaitility</artifactId>
+      </dependency>
+
+      <dependency>
          <groupId>org.slf4j</groupId>
          <artifactId>slf4j-simple</artifactId>
-         <scope>test</scope>
       </dependency>
 
    </dependencies>

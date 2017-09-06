@@ -1,6 +1,7 @@
 package org.jboss.weld.vertx;
 
 import javax.enterprise.event.Event;
+import javax.enterprise.inject.Vetoed;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -11,6 +12,7 @@ import io.vertx.core.eventbus.Message;
  *
  * @author Martin Kouba
  */
+@Vetoed
 class VertxHandler implements Handler<Message<Object>> {
 
     private final Vertx vertx;

@@ -16,6 +16,8 @@
  */
 package org.jboss.weld.vertx;
 
+import javax.enterprise.inject.Vetoed;
+
 import org.jboss.weld.vertx.VertxEvent.VertxMessage;
 
 import io.vertx.core.AsyncResult;
@@ -24,6 +26,7 @@ import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 
+@Vetoed
 class VertxMessageImpl implements VertxMessage {
 
     private final String address;

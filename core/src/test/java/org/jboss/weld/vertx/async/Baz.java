@@ -14,29 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx;
+package org.jboss.weld.vertx.async;
 
-import javax.enterprise.inject.Vetoed;
+import java.util.Optional;
 
-/**
- *
- * @author Martin Kouba
- */
-@Vetoed
-public class RecipientFailure extends RuntimeException {
+import javax.enterprise.context.Dependent;
+import javax.inject.Inject;
 
-    private static final long serialVersionUID = 1L;
+import org.jboss.weld.vertx.AsyncReference;
 
-    final Integer code;
+@Dependent
+public class Baz {
 
-    /**
-     *
-     * @param code
-     * @param message
-     */
-    public RecipientFailure(Integer code, String message) {
-        super(message);
-        this.code = code;
+    private Optional<BlockingFoo> foo = Optional.empty();
+
+    @Inject
+    public Baz(AsyncReference<BlockingFoo> asyncRef) {
+        asyncRef.thenAccept((foo) -> this.foo = Optional.ofNullable(foo));
+    }
+
+    public BlockingFoo getFoo() {
+        return foo.orElse(BlockingFoo.EMPTY);
     }
 
 }

@@ -16,6 +16,8 @@
  */
 package org.jboss.weld.vertx;
 
+import javax.enterprise.inject.Vetoed;
+
 import org.jboss.weld.config.ConfigurationKey;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -31,6 +33,7 @@ import io.vertx.core.logging.LoggerFactory;
  * @author Martin Kouba
  * @see VertxExtension
  */
+@Vetoed
 public class WeldVerticle extends AbstractVerticle {
 
     /**
