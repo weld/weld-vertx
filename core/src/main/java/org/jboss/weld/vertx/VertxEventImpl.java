@@ -16,12 +16,15 @@
  */
 package org.jboss.weld.vertx;
 
+import javax.enterprise.inject.Vetoed;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+@Vetoed
 class VertxEventImpl implements VertxEvent {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventImpl.class.getName());

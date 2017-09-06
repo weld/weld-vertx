@@ -17,10 +17,14 @@
 package org.jboss.weld.vertx;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -33,15 +37,22 @@ import javax.enterprise.inject.Default;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
 import javax.enterprise.inject.spi.PassivationCapable;
+import javax.enterprise.inject.spi.ProcessBeanAttributes;
+import javax.enterprise.inject.spi.ProcessInjectionPoint;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
+import javax.enterprise.inject.spi.ProcessProducerMethod;
 import javax.enterprise.util.AnnotationLiteral;
 
 import org.jboss.weld.bean.builtin.BeanManagerProxy;
+import org.jboss.weld.resolution.BeanTypeAssignabilityRules;
+import org.jboss.weld.util.bean.ForwardingBeanAttributes;
+import org.jboss.weld.util.collections.ImmutableSet;
 import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
@@ -51,8 +62,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * The central point of integration. Its task is to find all CDI observer methods that should be notified when a message is sent via {@link io.vertx.core.eventbus.EventBus}. See also
- * {@link VertxEvent} and {@link VertxConsumer}.
+ * The central point of integration. Its task is to find all CDI observer methods that should be notified when a message is sent via
+ * {@link io.vertx.core.eventbus.EventBus}. See also {@link VertxEvent} and {@link VertxConsumer}.
  * <p>
  * If a {@link Vertx} instance is available:
  * <ul>
@@ -79,6 +90,10 @@ public class VertxExtension implements Extension {
 
     private final Set<String> consumerAddresses;
 
+    private final Set<Annotation> asyncReferenceQualifiers;
+
+    private final Set<AsyncProducerMetadata> asyncProducerMethods;
+
     private final Vertx vertx;
 
     private final Context context;
@@ -89,8 +104,44 @@ public class VertxExtension implements Extension {
 
     public VertxExtension(Vertx vertx, Context context) {
         this.consumerAddresses = new HashSet<>();
+        this.asyncReferenceQualifiers = new HashSet<>();
+        this.asyncProducerMethods = new HashSet<>();
         this.vertx = vertx;
         this.context = context;
+    }
+
+    @SuppressWarnings("rawtypes")
+    void processAsyncReferenceInjectionPoints(@Observes ProcessInjectionPoint<?, ? extends AsyncReference> event) {
+        asyncReferenceQualifiers.addAll(event.getInjectionPoint().getQualifiers());
+    }
+
+    @SuppressWarnings("rawtypes")
+    void addAsyncReferenceQualifiers(@Observes ProcessBeanAttributes<AsyncReferenceImpl> event) {
+        // Add all discovered qualifiers to AsyncReferenceImpl bean attributes
+        if (!asyncReferenceQualifiers.isEmpty()) {
+            LOGGER.debug("Adding additional AsyncReference qualifiers: {0}", asyncReferenceQualifiers);
+            BeanAttributes<AsyncReferenceImpl> attributes = event.getBeanAttributes();
+            event.setBeanAttributes(new ForwardingBeanAttributes<AsyncReferenceImpl>() {
+
+                Set<Annotation> qualifiers = ImmutableSet.<Annotation> builder().addAll(attributes.getQualifiers()).addAll(asyncReferenceQualifiers).build();
+
+                @Override
+                public Set<Annotation> getQualifiers() {
+                    return qualifiers;
+                }
+
+                @Override
+                protected BeanAttributes<AsyncReferenceImpl> attributes() {
+                    return attributes;
+                }
+            });
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    void collectAsyncProducerMethods(@Observes ProcessProducerMethod<? extends CompletionStage, ?> event) {
+        // Discover all producer methods returning CompletionStage<?>
+        asyncProducerMethods.add(new AsyncProducerMetadata(event.getAnnotatedProducerMethod().getBaseType(), event.getBean().getQualifiers()));
     }
 
     public void processVertxEventObserver(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
@@ -128,6 +179,7 @@ public class VertxExtension implements Extension {
         if (vertx != null) {
             registerConsumers(vertx, BeanManagerProxy.unwrap(beanManager).event());
         }
+        asyncReferenceQualifiers.clear();
     }
 
     public void registerConsumers(Vertx vertx, Event<Object> event) {
@@ -151,13 +203,26 @@ public class VertxExtension implements Extension {
                 : DEFAULT_CONSUMER_REGISTRATION_TIMEOUT;
         try {
             if (!latch.await(timeout, TimeUnit.MILLISECONDS)) {
-                throw new IllegalStateException(String.format("Message consumers not registered within %s ms [registered: %s, total: %s]", timeout, latch.getCount(),
-                        consumerAddresses.size()));
+                throw new IllegalStateException(String.format("Message consumers not registered within %s ms [registered: %s, total: %s]", timeout,
+                        latch.getCount(), consumerAddresses.size()));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
+    }
+
+    List<AsyncProducerMetadata> getAsyncProducerMetadata(Type requiredType) {
+        if (asyncProducerMethods.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AsyncProducerMetadata> found = new ArrayList<>();
+        for (AsyncProducerMetadata metadata : asyncProducerMethods) {
+            if (BeanTypeAssignabilityRules.instance().matches(requiredType, metadata.resultType)) {
+                found.add(metadata);
+            }
+        }
+        return found;
     }
 
     private Set<Type> getBeanTypes(Class<?> implClazz, Type... types) {
@@ -254,6 +319,23 @@ public class VertxExtension implements Extension {
         @Override
         public String getId() {
             return VertxExtension.class.getName() + "_" + beanTypes;
+        }
+
+    }
+
+    static class AsyncProducerMetadata {
+
+        Type producerType;
+
+        Type resultType;
+
+        Set<Annotation> qualifiers;
+
+        public AsyncProducerMetadata(Type producerType, Set<Annotation> qualifiers) {
+            this.producerType = producerType;
+            ParameterizedType parameterizedType = (ParameterizedType) producerType;
+            this.resultType = parameterizedType.getActualTypeArguments()[0];
+            this.qualifiers = qualifiers;
         }
 
     }

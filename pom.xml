@@ -57,6 +57,8 @@
       <version.junit>4.12</version.junit>
       <version.rest.assured>3.0.1</version.rest.assured>
       <version.slf4j>1.7.10</version.slf4j>
+      <version.vertx.completable.future>0.1.2</version.vertx.completable.future>
+      <version.awaitility>3.0.0</version.awaitility>
    </properties>
 
    <dependencyManagement>
@@ -88,6 +90,12 @@
          </dependency>
 
          <dependency>
+            <groupId>me.escoffier.vertx</groupId>
+            <artifactId>vertx-completable-future</artifactId>
+            <version>${version.vertx.completable.future}</version>
+         </dependency>
+
+         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-unit</artifactId>
             <version>${version.vertx}</version>
@@ -112,6 +120,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${version.slf4j}</version>
+            <scope>test</scope>
+         </dependency>
+
+         <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${version.awaitility}</version>
             <scope>test</scope>
          </dependency>
 
