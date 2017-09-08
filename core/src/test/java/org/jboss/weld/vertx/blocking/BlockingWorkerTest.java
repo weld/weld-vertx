@@ -75,10 +75,11 @@ public class BlockingWorkerTest {
 
         BlockingFoo foo = weld.select(BlockingFoo.class).get();
 
-        BlockingWorker.from(vertx).perform(() -> foo.getMessage()).thenAccept((m) -> {
+        BlockingWorker.from(vertx).perform(foo::getMessage).thenAccept(m -> {
             context.assertEquals("ping", m);
             async.complete();
         });
+        context.assertEquals(1, async.count());
         BlockingFoo.complete("ping");
     }
 
@@ -93,6 +94,23 @@ public class BlockingWorkerTest {
             context.assertEquals("Hello ping!", m);
             async.complete();
         });
+        context.assertEquals(1, async.count());
         BlockingFoo.complete("ping");
+    }
+
+    @Test
+    public void testAsyncReferenceBlockingWorkerInject(TestContext context) throws InterruptedException, ExecutionException {
+        BlockingAlpha.reset();
+        Async async = context.async();
+
+        HelloCombo hello = weld.select(HelloCombo.class).get();
+
+        hello.hello().thenAccept((m) -> {
+            context.assertEquals("Hello ping!", m);
+            async.complete();
+        });
+        BlockingAlpha.completeInit();
+        context.assertEquals(1, async.count());
+        BlockingAlpha.completeOperation("ping");
     }
 }

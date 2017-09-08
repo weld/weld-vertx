@@ -33,7 +33,7 @@ public class Hello {
     BlockingFoo foo;
 
     CompletionStage<String> hello() {
-        return worker.perform(() -> foo.getMessage()).thenApply((m) -> "Hello " + m + "!");
+        return worker.perform(foo::getMessage).thenApply(m -> "Hello " + m + "!");
     }
 
 }
