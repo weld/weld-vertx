@@ -51,7 +51,7 @@
       <!-- Versions -->
       <version.cdi12>1.2</version.cdi12>
       <version.cdi2>2.0</version.cdi2>
-      <version.weld2>2.4.4.Final</version.weld2>
+      <version.weld2>2.4.5.Final</version.weld2>
       <version.weld3>3.0.1.Final</version.weld3>
       <version.vertx>3.4.2</version.vertx>
       <version.junit>4.12</version.junit>

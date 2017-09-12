@@ -117,12 +117,6 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
         return reference;
     }
 
-    // TODO Remove after upgrade to Weld 2.4.5 - see also WELD-2405
-    @Override
-    public T orElse(T defaultValue) {
-        return AsyncReference.super.orElse(defaultValue);
-    }
-
     @Override
     public Throwable cause() {
         return cause;
