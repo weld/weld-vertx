@@ -34,6 +34,7 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 
 import org.jboss.weld.exceptions.AmbiguousResolutionException;
+import org.jboss.weld.interceptor.util.proxy.TargetInstanceProxy;
 import org.jboss.weld.logging.BeanManagerLogger;
 import org.jboss.weld.vertx.VertxExtension.AsyncProducerMetadata;
 
@@ -164,6 +165,10 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
             }
             Bean<T> bean = (Bean<T>) beanManager.resolve(beans);
             T beanInstance = (T) beanManager.getReference(bean, requiredType, creationalContext);
+            if (beanManager.isNormalScope(bean.getScope()) && beanInstance instanceof TargetInstanceProxy) {
+                // Initialize normal scoped bean instance eagerly
+                ((TargetInstanceProxy<?>) beanInstance).getTargetInstance();
+            }
             f.complete(beanInstance);
         }), (r) -> {
             if (r.succeeded()) {

@@ -172,4 +172,22 @@ public class AsyncReferenceTest {
             async.complete();
         });
     }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testAsyncReferenceNormalScoped(TestContext context) throws InterruptedException {
+        NormalScopedBlockingFoo.reset();
+        Async async = context.async();
+        AtomicBoolean created = new AtomicBoolean(false);
+
+        weld.select(new TypeLiteral<AsyncReference<NormalScopedBlockingFoo>>() {
+        }).get().thenAccept((foo) -> {
+            context.assertTrue(NormalScopedBlockingFoo.created.get());
+            context.assertEquals("Foo", foo.getMessage());
+            created.set(true);
+            async.complete();
+        });
+        assertFalse(created.get());
+        NormalScopedBlockingFoo.complete("Foo");
+    }
 }
