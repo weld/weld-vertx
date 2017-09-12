@@ -105,6 +105,8 @@ public class AsyncReferenceTest {
     @SuppressWarnings("serial")
     @Test
     public void testAsyncReferenceDynamicLookup() throws InterruptedException, ExecutionException {
+        BlockingFoo.reset();
+        BlockingBarProducer.reset();
         Boss.DESTROYED.set(false);
         List<Boolean> stageResults = new CopyOnWriteArrayList<>();
 
@@ -114,6 +116,10 @@ public class AsyncReferenceTest {
         assertEquals(0, stageResults.size());
 
         Awaitility.await().atMost(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).until(() -> ref.isDone());
+
+        BlockingFoo.complete("Foo");
+        BlockingBarProducer.complete(152);
+
         Awaitility.await().atMost(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).until(() -> ref.get().isReadyToTest());
 
         assertEquals(1, stageResults.size());
