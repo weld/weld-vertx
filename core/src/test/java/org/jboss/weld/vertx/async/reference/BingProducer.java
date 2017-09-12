@@ -1,4 +1,4 @@
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.reference;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Dependent;

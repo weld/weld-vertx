@@ -14,27 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.worker;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.Dependent;
 
 import org.jboss.weld.vertx.Timeouts;
 
 @Dependent
 public class BlockingFoo {
-
-    static final BlockingFoo EMPTY;
-
-    static {
-        EMPTY = new BlockingFoo();
-        EMPTY.message = "";
-    }
 
     private static CompletableFuture<String> future;
 
@@ -46,19 +38,13 @@ public class BlockingFoo {
         future = new CompletableFuture<>();
     }
 
-    private String message;
-
-    @PostConstruct
-    void init() {
-        try {
-            // Simulate blocking operation
-            message = future.get(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-        }
+    String getMessage() throws InterruptedException, ExecutionException, TimeoutException {
+     // Simulate blocking operation
+        return future.get(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-    String getMessage() {
-        return message;
+    String getMessageNonBlocking() throws InterruptedException, ExecutionException, TimeoutException {
+        return BlockingFoo.class.getName();
     }
 
 }

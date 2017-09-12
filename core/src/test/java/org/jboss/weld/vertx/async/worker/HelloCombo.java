@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.worker;
 
 import java.util.concurrent.CompletionStage;
 
@@ -22,15 +22,24 @@ import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 
 import org.jboss.weld.vertx.AsyncReference;
+import org.jboss.weld.vertx.AsyncWorker;
 
 @Dependent
-public class Hello {
+public class HelloCombo {
 
     @Inject
-    AsyncReference<BlockingFoo> foo;
+    AsyncWorker worker;
+
+    @Inject
+    AsyncReference<BlockingAlpha> alphaReference;
 
     CompletionStage<String> hello() {
-        return foo.thenApply(BlockingFoo::getMessage);
+        return alphaReference.thenCompose(alpha ->
+        // At this point BlockingAlpha is ready
+        // But getMessage() is also blocking
+        worker.performBlocking(alpha::getMessage)
+                // Finally modify the final message
+                .thenApply(m -> "Hello " + m + "!"));
     }
 
 }

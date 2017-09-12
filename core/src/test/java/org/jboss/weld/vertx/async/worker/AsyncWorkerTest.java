@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.blocking;
+package org.jboss.weld.vertx.async.worker;
 
 import java.util.concurrent.ExecutionException;
 
 import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.vertx.BlockingWorker;
+import org.jboss.weld.vertx.AsyncWorker;
 import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.WeldVerticle;
 import org.junit.After;
@@ -39,7 +39,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  * @author Martin Kouba
  */
 @RunWith(VertxUnitRunner.class)
-public class BlockingWorkerTest {
+public class AsyncWorkerTest {
 
     private WeldContainer weld;
 
@@ -69,13 +69,13 @@ public class BlockingWorkerTest {
     }
 
     @Test
-    public void testBlockingWorker(TestContext context) throws InterruptedException, ExecutionException {
+    public void testWorker(TestContext context) throws InterruptedException, ExecutionException {
         BlockingFoo.reset();
         Async async = context.async();
 
         BlockingFoo foo = weld.select(BlockingFoo.class).get();
 
-        BlockingWorker.from(vertx).perform(foo::getMessage).thenAccept(m -> {
+        AsyncWorker.from(vertx).performBlocking(foo::getMessage).thenAccept(m -> {
             context.assertEquals("ping", m);
             async.complete();
         });
@@ -84,7 +84,7 @@ public class BlockingWorkerTest {
     }
 
     @Test
-    public void testBlockingWorkerInject(TestContext context) throws InterruptedException, ExecutionException {
+    public void testWorkerInject(TestContext context) throws InterruptedException, ExecutionException {
         BlockingFoo.reset();
         Async async = context.async();
 
@@ -99,7 +99,7 @@ public class BlockingWorkerTest {
     }
 
     @Test
-    public void testAsyncReferenceBlockingWorkerInject(TestContext context) throws InterruptedException, ExecutionException {
+    public void testAsyncReferenceWorkerCombo(TestContext context) throws InterruptedException, ExecutionException {
         BlockingAlpha.reset();
         Async async = context.async();
 
@@ -112,5 +112,18 @@ public class BlockingWorkerTest {
         BlockingAlpha.completeInit();
         context.assertEquals(1, async.count());
         BlockingAlpha.completeOperation("ping");
+    }
+
+    @Test
+    public void testWorkerNonBlocking(TestContext context) throws InterruptedException, ExecutionException {
+        BlockingFoo.reset();
+        Async async = context.async();
+
+        BlockingFoo foo = weld.select(BlockingFoo.class).get();
+
+        AsyncWorker.from(vertx).perform(foo::getMessageNonBlocking).thenAccept(m -> {
+            context.assertEquals(BlockingFoo.class.getName(), m);
+            async.complete();
+        });
     }
 }

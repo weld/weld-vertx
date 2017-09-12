@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.reference;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
