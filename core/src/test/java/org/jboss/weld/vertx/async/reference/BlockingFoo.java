@@ -14,23 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.reference;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Dependent;
 
 import org.jboss.weld.vertx.Timeouts;
 
-@ApplicationScoped
-public class NormalScopedBlockingFoo {
+@Dependent
+public class BlockingFoo {
 
-    static AtomicBoolean created;
+    static final BlockingFoo EMPTY;
+
+    static {
+        EMPTY = new BlockingFoo();
+        EMPTY.message = "";
+    }
 
     private static CompletableFuture<String> future;
 
@@ -39,7 +43,6 @@ public class NormalScopedBlockingFoo {
     }
 
     static void reset() {
-        created = new AtomicBoolean(false);
         future = new CompletableFuture<>();
     }
 
@@ -52,17 +55,10 @@ public class NormalScopedBlockingFoo {
             message = future.get(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
         }
-        created.set(true);
     }
 
     String getMessage() {
         return message;
     }
-
-    @Override
-    public String toString() {
-        return "normal";
-    }
-
 
 }

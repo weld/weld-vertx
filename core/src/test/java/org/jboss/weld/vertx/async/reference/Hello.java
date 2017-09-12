@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.reference;
 
-import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
@@ -24,17 +24,13 @@ import javax.inject.Inject;
 import org.jboss.weld.vertx.AsyncReference;
 
 @Dependent
-public class Baz {
-
-    private Optional<BlockingFoo> foo = Optional.empty();
+public class Hello {
 
     @Inject
-    public Baz(AsyncReference<BlockingFoo> asyncRef) {
-        asyncRef.thenAccept((foo) -> this.foo = Optional.ofNullable(foo));
-    }
+    AsyncReference<BlockingFoo> foo;
 
-    public BlockingFoo getFoo() {
-        return foo.orElse(BlockingFoo.EMPTY);
+    CompletionStage<String> hello() {
+        return foo.thenApply(BlockingFoo::getMessage);
     }
 
 }

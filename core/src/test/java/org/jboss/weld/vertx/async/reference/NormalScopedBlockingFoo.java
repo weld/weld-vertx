@@ -14,19 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.blocking;
+package org.jboss.weld.vertx.async.reference;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.enterprise.context.Dependent;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
 
 import org.jboss.weld.vertx.Timeouts;
 
-@Dependent
-public class BlockingFoo {
+@ApplicationScoped
+public class NormalScopedBlockingFoo {
+
+    static AtomicBoolean created;
 
     private static CompletableFuture<String> future;
 
@@ -35,12 +39,30 @@ public class BlockingFoo {
     }
 
     static void reset() {
+        created = new AtomicBoolean(false);
         future = new CompletableFuture<>();
     }
 
-    String getMessage() throws InterruptedException, ExecutionException, TimeoutException {
-     // Simulate blocking operation
-        return future.get(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+    private String message;
+
+    @PostConstruct
+    void init() {
+        try {
+            // Simulate blocking operation
+            message = future.get(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+        }
+        created.set(true);
     }
+
+    String getMessage() {
+        return message;
+    }
+
+    @Override
+    public String toString() {
+        return "normal";
+    }
+
 
 }

@@ -14,48 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.async;
+package org.jboss.weld.vertx.async.reference;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 
-import javax.annotation.PreDestroy;
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 
 import org.jboss.weld.vertx.AsyncReference;
-import org.jboss.weld.vertx.async.BingProducer.Bing;
-import org.jboss.weld.vertx.async.BlockingBarProducer.BlockingBar;
 
 @Dependent
-public class Boss {
+public class Baz {
 
-    static final AtomicBoolean DESTROYED = new AtomicBoolean(false);
-
-    @Inject
-    AsyncReference<BlockingFoo> foo;
+    private Optional<BlockingFoo> foo = Optional.empty();
 
     @Inject
-    AsyncReference<List<Boss>> unsatisfied;
-
-    @Inject
-    AsyncReference<Bing> noBing;
-
-    @Inject
-    @Juicy
-    AsyncReference<Bing> juicyBing;
-
-    @Inject
-    @Juicy
-    AsyncReference<BlockingBar> juicyBar;
-
-    boolean isReadyToTest() {
-        return foo.isDone() && unsatisfied.isDone() && noBing.isDone() && juicyBing.isDone() && juicyBar.isDone();
+    public Baz(AsyncReference<BlockingFoo> asyncRef) {
+        asyncRef.thenAccept((foo) -> this.foo = Optional.ofNullable(foo));
     }
 
-    @PreDestroy
-    void dispose() {
-        DESTROYED.set(true);
+    public BlockingFoo getFoo() {
+        return foo.orElse(BlockingFoo.EMPTY);
     }
 
 }
