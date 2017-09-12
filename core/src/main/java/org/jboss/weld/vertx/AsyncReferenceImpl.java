@@ -88,7 +88,8 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
         Type requiredType = parameterizedType.getActualTypeArguments()[0];
 
         // First check if there is a relevant async producer method available
-        List<AsyncProducerMetadata> foundMetadata = beanManager.getExtension(VertxExtension.class).getAsyncProducerMetadata(requiredType);
+        List<AsyncProducerMetadata> foundMetadata = beanManager.getExtension(VertxExtension.class).getAsyncProducerMetadata(requiredType,
+                injectionPoint.getQualifiers());
 
         if (foundMetadata.size() > 1) {
             failure(new AmbiguousResolutionException(

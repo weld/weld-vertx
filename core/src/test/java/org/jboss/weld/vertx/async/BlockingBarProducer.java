@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Dependent;
+import javax.enterprise.inject.Default;
 import javax.enterprise.inject.Produces;
 
 @ApplicationScoped
@@ -41,6 +42,14 @@ public class BlockingBarProducer {
     @Juicy
     CompletionStage<BlockingBar> juicyBlockingBar() {
         return future;
+    }
+
+    // Just to verify VertxExtension.AsyncProducerMetadata.matches(Type, Set<Annotation>)
+    @Produces
+    @Dependent
+    @Default
+    CompletionStage<BlockingBar> defaultBlockingBar() {
+        return CompletableFuture.completedFuture(new BlockingBar(Integer.MIN_VALUE));
     }
 
     static class BlockingBar {
