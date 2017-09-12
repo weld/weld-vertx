@@ -60,7 +60,7 @@ public interface AsyncReference<T> extends CompletionStage<T> {
     /**
      * Gets the reference.
      *
-     * @return the reference, might be<code>null</code>
+     * @return the reference, might be <code>null</code>
      */
     T get();
 
