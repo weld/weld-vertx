@@ -212,13 +212,13 @@ public class VertxExtension implements Extension {
         }
     }
 
-    List<AsyncProducerMetadata> getAsyncProducerMetadata(Type requiredType) {
+    List<AsyncProducerMetadata> getAsyncProducerMetadata(Type requiredType, Set<Annotation> qualifiers) {
         if (asyncProducerMethods.isEmpty()) {
             return Collections.emptyList();
         }
         List<AsyncProducerMetadata> found = new ArrayList<>();
         for (AsyncProducerMetadata metadata : asyncProducerMethods) {
-            if (BeanTypeAssignabilityRules.instance().matches(requiredType, metadata.resultType)) {
+            if (metadata.matches(requiredType, qualifiers)) {
                 found.add(metadata);
             }
         }
@@ -336,6 +336,10 @@ public class VertxExtension implements Extension {
             ParameterizedType parameterizedType = (ParameterizedType) producerType;
             this.resultType = parameterizedType.getActualTypeArguments()[0];
             this.qualifiers = qualifiers;
+        }
+
+        boolean matches(Type requiredType, Set<Annotation> qualifiers) {
+            return BeanTypeAssignabilityRules.instance().matches(requiredType, resultType) && this.qualifiers.containsAll(qualifiers);
         }
 
     }

@@ -37,9 +37,9 @@ import java.util.concurrent.CompletionStage;
  * </pre>
  *
  * <p>
- * If there is a producer method whose return type is {@link CompletionStage} where the result type matches the required type (according to type-safe resolution
- * rules) then {@link CompletionStage#whenComplete(java.util.function.BiConsumer)} is used to process the reference. Otherwise, a worker thread is used so that
- * the processing does not block the event loop thread.
+ * If there is a producer method whose return type is {@link CompletionStage} where the result type matches the required type and has all the required qualifers
+ * (according to type-safe resolution rules) then {@link CompletionStage#whenComplete(java.util.function.BiConsumer)} is used to process the reference.
+ * Otherwise, a worker thread is used so that the processing does not block the event loop thread.
  * </p>
  *
  * <p>

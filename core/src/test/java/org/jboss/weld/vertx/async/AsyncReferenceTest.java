@@ -98,6 +98,7 @@ public class AsyncReferenceTest {
         assertTrue(cause instanceof UnsatisfiedResolutionException);
         assertNull(boss.noBing.get());
         assertEquals(55, boss.juicyBing.get().value);
+        assertNull(boss.juicyBar.cause());
         assertEquals(152, boss.juicyBar.get().code);
     }
 
