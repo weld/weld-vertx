@@ -16,25 +16,25 @@
  */
 package org.jboss.weld.vertx.web.extension;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.web.HelloHandler;
 import org.jboss.weld.vertx.web.RouteExtension;
 import org.jboss.weld.vertx.web.SayHelloService;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
@@ -42,30 +42,51 @@ import io.vertx.ext.web.handler.BodyHandler;
  *
  * @author Martin Kouba
  */
+@RunWith(VertxUnitRunner.class)
 public class RouteExtensionTest {
-
-    static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
     @Rule
     public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
-    @Test
-    public void testHandlers() throws InterruptedException {
-        try (WeldContainer weld = new Weld().disableDiscovery().addExtension(new RouteExtension()).beanClasses(HelloHandler.class, SayHelloService.class)
-                .initialize()) {
-            Vertx vertx = Vertx.vertx();
-            HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
-            Router router = Router.router(vertx);
-            router.route().handler(BodyHandler.create());
-            vertx.createHttpServer().requestHandler(router::accept).listen(8080);
-            try {
-                weld.select(RouteExtension.class).get().registerRoutes(router);
-                client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-                assertEquals(SayHelloService.MESSAGE, SYNCHRONIZER.poll(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS));
-            } finally {
-                vertx.close();
+    private WeldContainer weld;
+
+    private Vertx vertx;
+
+    @Before
+    public void init(TestContext context) throws InterruptedException {
+        weld = new Weld().disableDiscovery().addExtension(new RouteExtension()).beanClasses(HelloHandler.class, SayHelloService.class).initialize();
+        vertx = Vertx.vertx();
+        Async async = context.async();
+        Router router = Router.router(vertx);
+        weld.select(RouteExtension.class).get().registerRoutes(router);
+        router.route().handler(BodyHandler.create());
+        vertx.createHttpServer().requestHandler(router::accept).listen(8080, (r) -> {
+            if (r.succeeded()) {
+                async.complete();
+            } else {
+                context.fail(r.cause());
             }
+        });
+    }
+
+    @After
+    public void close(TestContext context) {
+        if (vertx != null) {
+            vertx.close(context.asyncAssertSuccess());
         }
+        if (weld != null) {
+            weld.shutdown();
+        }
+    }
+
+    @Test
+    public void testHandlers(TestContext context) throws InterruptedException {
+        Async async = context.async();
+        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
+        client.get("/hello").handler(response -> response.bodyHandler(b -> {
+            context.assertEquals(SayHelloService.MESSAGE, b.toString());
+            async.complete();
+        })).end();
     }
 
 }
