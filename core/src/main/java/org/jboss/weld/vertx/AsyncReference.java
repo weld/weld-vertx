@@ -17,6 +17,7 @@
 package org.jboss.weld.vertx;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
 /**
  * Asynchronously processed wrapper of an injectable reference. Can be used to obtain an injectable reference of a bean whose creation involves potentially
@@ -53,14 +54,14 @@ public interface AsyncReference<T> extends CompletionStage<T> {
 
     /**
      *
-     * @return <code>true</code> if processed, <code>false</code> otherwise
+     * @return {@code true} if an injectable reference was obtained, {@code false} otherwise
      */
     boolean isDone();
 
     /**
      * Gets the reference.
      *
-     * @return the reference, might be <code>null</code>
+     * @return the reference, might be {@code null}
      */
     T get();
 
@@ -68,7 +69,7 @@ public interface AsyncReference<T> extends CompletionStage<T> {
      * Gets the reference or the default value.
      *
      * @param defaultValue
-     * @return the reference or the default value if the reference is <code>null</code>
+     * @return the reference or the default value if the reference is {@code null}
      */
     default T orElse(T defaultValue) {
         T value = get();
@@ -76,9 +77,21 @@ public interface AsyncReference<T> extends CompletionStage<T> {
     }
 
     /**
+     * If {@link #isDone()} returns <code>true</code>, invoke the specified consumer with the reference (may be {@code null}) and the exception (or {@code null}
+     * if processed successfully).
+     *
+     * @param consumer
+     */
+    default void ifDone(BiConsumer<? super T, ? super Throwable> consumer) {
+        if (isDone()) {
+            consumer.accept(get(), cause());
+        }
+    }
+
+    /**
      * Gets the cause in case of a failure occurs during processing.
      *
-     * @return the cause or <code>null</code> if processed sucessfully
+     * @return the cause or {@code null} if processed sucessfully
      */
     Throwable cause();
 

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -89,13 +90,19 @@ public class AsyncReferenceTest {
         Boss boss = weld.select(Boss.class).get();
         assertFalse(boss.foo.isDone());
         assertEquals("", boss.foo.orElse(BlockingFoo.EMPTY).getMessage());
+        boss.foo.ifDone((r, t) -> fail("BlockingFoo not complete yet"));
         BlockingFoo.complete("Foo");
         BlockingBarProducer.complete(152);
         Awaitility.await().atMost(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).until(() -> boss.isReadyToTest());
         assertEquals("Foo", boss.foo.get().getMessage());
+        boss.foo.ifDone((r, t) -> assertEquals("Foo", r.getMessage()));
         Throwable cause = boss.unsatisfied.cause();
         assertNotNull(cause);
         assertTrue(cause instanceof UnsatisfiedResolutionException);
+        boss.unsatisfied.ifDone((r, t) -> {
+            assertNotNull(t);
+            assertTrue(t instanceof UnsatisfiedResolutionException);
+        });
         assertNull(boss.noBing.get());
         assertEquals(55, boss.juicyBing.get().value);
         assertNull(boss.juicyBar.cause());
