@@ -1,0 +1,45 @@
+== Service Proxy
+
+* allows to inject and invoke service proxies (as defined in https://github.com/vert-x3/vertx-service-proxy)
+* the result handler is wrapped and executed using `ServiceProxySupport#getExecutor()` (`Vertx.executeBlocking()` by default)
+
+.Artifact GAV
+[source,xml]
+----
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-service-proxy</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+----
+
+NOTE: `weld-vertx-service-proxy` does not depend directly on `weld-vertx-core`. However, the default implementation of `org.jboss.weld.vertx.serviceproxy.ServiceProxySupport` relies on the functionality provided by `weld-vertx-core`.
+
+=== Injecting Service Proxies
+
+A service proxy interface annotated with `io.vertx.codegen.annotations.ProxyGen` is automatically discovered and a custom bean with `@Dependent` scope and `org.jboss.weld.vertx.serviceproxy.ServiceProxy` qualifier is registered.
+
+[source,java]
+----
+@ApplicationScoped
+public class EchoServiceConsumer {
+
+    // Injects a service proxy for a service with the given address
+    @Inject
+    @ServiceProxy("echo-service-address")
+    EchoService service;
+
+    @Inject
+    @Echo
+    Event<String> event;
+
+    public void doEchoBusiness(String value) {
+        // By default, the result handler is executed by means of Vertx.executeBlocking()
+        // In this case, we fire a CDI event observed by EchoObserver bean
+        service.echo(value, (r) -> event.fire(r.result()));
+    }
+
+}
+----
+
+TIP: See also https://github.com/weld/weld-vertx/blob/master/service-proxy/src/test/java/org/jboss/weld/vertx/serviceproxy/EchoServiceProxyTest.java[EchoServiceProxyTest] in the test suite.

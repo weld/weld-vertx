@@ -1,0 +1,105 @@
+[[web]]
+== Web
+
+* allows to define/register an `io.vertx.ext.web.Route` in a declarative way, using `@org.jboss.weld.vertx.web.WebRoute`
+
+.Artifact GAV
+[source,xml]
+----
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-core</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+----
+
+=== Declaring routes in a declarative way
+
+`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way - using `org.jboss.weld.vertx.web.WebRoute` annotation:
+
+[source,java]
+----
+import org.jboss.weld.vertx.web.WebRoute;
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
+
+@WebRoute("/hello") // Matches all HTTP methods
+public class HelloWorldHandler implements Handler<RoutingContext> {
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().setStatusCode(200).end("Hello world!");
+    }
+}
+----
+
+Handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components).
+However, dependency injection and interception is supported:
+
+[source,java]
+----
+import static org.jboss.weld.vertx.web.WebRoute.HandlerType.BLOCKING;
+import javax.inject.Inject;
+import javax.enterprise.context.control.ActivateRequestContext;
+
+@WebRoute("/hello", type = BLOCKING) // A blocking request handler
+public class HelloHandler implements Handler<RoutingContext> {
+
+    @Inject
+    SayHelloService service;
+
+    // Interceptor binding used to activate CDI request context within a handle() invocation
+    @ActivateRequestContext
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().setStatusCode(200).end(service.hello());
+    }
+}
+----
+
+`@WebRoute` is a repeatable annotation.
+If multiple annotations are declared on a handler class a single handler instance is used for multiple routes:
+
+[source,java]
+----
+import org.jboss.weld.vertx.web.WebRoute;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+
+@WebRoute("/hello", methods = HttpMethod.GET)
+@WebRoute("/bye")
+public class SuperHandler implements Handler<RoutingContext> {
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        // This method will be invoked upon the same handler instance for both routes
+        ctx.response().setStatusCode(200).end("I'm super!");
+    }
+}
+----
+
+[[web-howto]]
+=== How does it work?
+
+The central point of the module is the `org.jboss.weld.vertx.web.RouteExtension`.
+Its primary task is to find all classes annotated with `@WebRoute` and register routes through `RouteExtension.registerRoutes(Router)`.
+
+`org.jboss.weld.vertx.web.WeldWebVerticle` extends `org.jboss.weld.vertx.WeldVerticle`, registers `RouteExtension` automatically, and also provides the `WeldWebVerticle.registerRoutes(Router)` method (which delegates to `RouteExtension`):
+
+[source,java]
+----
+ class MyApp {
+
+     public static void main(String[] args) {
+         final Vertx vertx = Vertx.vertx();
+         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
+         vertx.deployVerticle(weldVerticle, result -> {
+             if (result.succeeded()) {
+                 // Configure the router after Weld bootstrap finished
+                 vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080);
+             }
+         });
+     }
+ }
+----

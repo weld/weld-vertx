@@ -1,0 +1,19 @@
+== Probe
+
+* allows to use http://docs.jboss.org/weld/reference/latest/en-US/html/devmode.html#probe[Probe] development tool in a Vert.x application
+* depends on `weld-vertx-web`
+
+.Artifact GAV
+[source,xml]
+----
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-probe</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+----
+
+=== How does it work?
+
+Just add `weld-vertx-probe` to the classpath, set the `org.jboss.weld.development` system property to `true` and use `WeldWebVerticle` to register the routes defined declaratively (as defined in <<web-howto>>).
+

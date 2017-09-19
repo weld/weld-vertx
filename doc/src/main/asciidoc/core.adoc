@@ -1,0 +1,177 @@
+[[core]]
+== Core
+
+* provides `WeldVerticle` which starts/stops the Weld SE container
+* makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus
+* provides `@ApplicationScoped` beans for `io.vertx.core.Vertx` and `io.vertx.core.Context`
+* allows to deploy Verticles produced/injected by Weld
+* provides "async" helpers such as `AsyncReference` and `AsyncWorker`
+
+.Artifact GAV
+[source,xml]
+----
+<dependency>
+  <groupId>org.jboss.weld.vertx</groupId>
+  <artifactId>weld-vertx-core</artifactId>
+  <version>${version.weld-vertx}</version>
+</dependency>
+----
+
+=== CDI observers and Vert.x message consumers
+
+Vert.x makes use of a light-weight distributed messaging system to allow application components to communicate in a loosely coupled way. `weld-vertx-core` makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus. A simple echo message consumer example:
+
+[source,java]
+----
+import org.jboss.weld.vertx.VertxConsumer;
+import org.jboss.weld.vertx.VertxEvent;
+
+class Foo {
+    // VertxConsumer - a qualifier used to specify the address of the message consumer
+    // VertxEvent - a Vert.x message wrapper
+    void echoConsumer(@Observes @VertxConsumer("echo.address") VertxEvent event) {
+        event.setReply(event.getMessageBody());
+    }
+}
+----
+
+Since we’re working with a regular observer method, additional parameters may be declared (next to the event parameter). These parameters are injection points. So it’s easy to declare a message consumer dependencies:
+
+[source,java]
+----
+void consumerWithDependencies(@Observes @VertxConsumer("dependencies.address") VertxEvent event, CoolService coolService, StatsService statsService) {
+    coolService.process(event.getMessageBody());
+    statsService.log(event);
+}
+----
+
+NOTE: If you inject a dependent bean, it will be destroyed when the invocation completes.
+
+Last but not least - an observer may also send/publish messages using the Vert.x event bus:
+
+[source,java]
+----
+void consumerStrikesBack(@Observes @VertxConsumer("publish.address") VertxEvent event) {
+    event.messageTo("test.huhu.address").publish("huhu");
+}
+----
+
+==== How does it work?
+
+The central point of integration is the `org.jboss.weld.vertx.VertxExtension`.
+Its primary task is to find all CDI observer methods that should be notified when a message is sent via `io.vertx.core.eventbus.EventBus`.
+
+If a `Vertx` instance is available during CDI bootstrap, then `VertxExtension` also:
+
+* registers a Vert.x handler for each address found (whenever a new message is delivered to the handler, `Event.fire()` is used to notify all observers bound to a specific address)
+* adds custom beans for `io.vertx.core.Vertx` and `io.vertx.core.Context` (thereby allowing to inject relevant instances into beans)
+
+NOTE: Handlers use `Vertx.executeBlocking()` since we expect the code to be blocking.
+
+`org.jboss.weld.vertx.WeldVerticle` starts/stops the Weld SE container and registers `VertxExtension` automatically. However, `VertxExtension.registerConsumers(Vertx, Event<Object>)` could be also used after the bootstrap, e.g. when a Vertx instance is only available after a CDI container is initialized.
+
+=== CDI-powered Verticles
+
+It's also possible to deploy Verticles produced/injected by Weld, e.g.:
+
+[source,java]
+----
+@Dependent
+class MyVerticle extends AbstractVerticle {
+
+     @Inject
+     Service service;
+
+     @Override
+     public void start() throws Exception {
+         vertx.eventBus().consumer("my.address").handler(m -> m.reply(service.process(m.body())));
+     }
+}
+
+class MyApp {
+     public static void main(String[] args) {
+         Vertx vertx = Vertx.vertx();
+         WeldVerticle weldVerticle = new WeldVerticle();
+         vertx.deployVerticle(weldVerticle, r -> {
+             if (r.succeeded()) {
+                 // Deploy Verticle instance produced by Weld
+                 MyVerticle myVerticle = weldVerticle.container().select(MyBeanVerticle.class).get();
+                 vertx.deployVerticle(myVerticle);
+             }
+         });
+     }
+}
+----
+
+=== `AsyncReference`
+
+CDI bean instance creation is synchronous.
+As a result if you inject a bean whose initialization involves potentially blocking operations (e.g. fetching some data from DB) the creation process is blocked until the dependency is ready.
+`AsyncReference` is an *asynchronously processed wrapper of an injectable reference* (also implements `CompletionStage`) which allows to finish the client bean creation before a dependency is ready.
+It's suitable e.g. when injecting a bean whose creation involves potentially blocking operations:
+
+[source,java]
+----
+@ApplicationScoped
+class Hello {
+
+    @Inject
+    AsynReference<ServiceWithBlockingInit> service;
+
+    CompletionStage<String> hello() {
+        return service.thenApply(s -> "Hello" + s.getName() + "!");
+    }
+}
+----
+
+
+If there is a producer method whose return type is `CompletionStage` where the result type matches the required type and has all the required qualifers (according to type-safe resolution rules) then `CompletionStage#whenComplete(java.util.function.BiConsumer)` is used to process the reference.
+Otherwise, a worker thread is used so that the processing does not block the event loop thread.
+
+=== `AsyncWorker`
+
+`AsyncWorker` allows to wrap a synchronous action as an asynchronous computation.
+The action is performed either as blocking operation using a Vertx worker thread or as non-blocking operation using the Vertx event-loop thread:
+
+[source,java]
+----
+@Dependent
+public class Hello {
+
+    @Inject
+    AsyncWorker worker;
+
+    @Inject
+    Service service;
+
+    CompletionStage<String> hello() {
+        return worker.performBlocking(service::getMessageFromDb).thenApply(m -> "Hello " + m + "!");
+    }
+}
+----
+
+It's also possible to combine `AsyncWorker` with `AsyncReference`:
+
+[source,java]
+----
+
+
+public class HelloCombo {
+
+    @Inject
+    AsyncWorker worker;
+
+    @Inject
+    AsyncReference<Service> serviceRef;
+
+    CompletionStage<String> hello() {
+        return serviceRef.thenCompose(service ->
+        // At this point Service is ready
+        // But getMessage() is also blocking
+        worker.performBlocking(service::getMessage)
+                // Finally modify the final message
+                .thenApply(m -> "Hello " + m + "!"));
+    }
+
+}
+----

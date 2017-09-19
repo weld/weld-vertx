@@ -1,0 +1,39 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>org.jboss.weld.vertx</groupId>
+      <artifactId>weld-vertx-parent</artifactId>
+      <version>1.2.0-SNAPSHOT</version>
+   </parent>
+   <artifactId>weld-vertx-doc</artifactId>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <version>1.5.5</version>
+            <executions>
+               <execution>
+                  <id>render-html</id>
+                  <phase>generate-resources</phase>
+                  <goals>
+                     <goal>process-asciidoc</goal>
+                  </goals>
+               </execution>
+            </executions>
+            <configuration>
+               <backend>html</backend>
+               <sourceHighlighter>highlight.js</sourceHighlighter>
+               <attributes>
+                  <version>${project.version}</version>
+                  <highlightjsdir>highlightjs</highlightjsdir>
+                  <highlightjs-theme>agate</highlightjs-theme>
+               </attributes>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+
+</project>

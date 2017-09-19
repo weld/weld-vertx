@@ -1,0 +1,17 @@
+= Weld Vert.x Extensions
+:toc: right
+:toclevels: 2
+:sectnumlevels: 4
+:sectnums:
+
+The primary purpose of `weld-vertx` is to bring the CDI programming model into the http://vertx.io/[Vert.x] ecosystem, i.e. to extend the tool-kit for building reactive applications on the JVM.
+
+http://weld.cdi-spec.org/[Weld] is the reference implementation of CDI. It’s part of a community of http://www.redhat.com/[Red Hat] projects.
+
+include::core.adoc[]
+
+include::web.adoc[]
+
+include::service-proxy.adoc[]
+
+include::probe.adoc[]

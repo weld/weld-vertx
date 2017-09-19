@@ -42,6 +42,7 @@
       <module>web</module>
       <module>service-proxy</module>
       <module>probe</module>
+      <module>doc</module>
    </modules>
 
    <properties>
