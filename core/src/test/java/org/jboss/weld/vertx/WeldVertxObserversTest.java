@@ -38,6 +38,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
 import io.vertx.core.metrics.Measured;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -46,17 +47,21 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  * @author Martin Kouba
  */
 @RunWith(VertxUnitRunner.class)
-public class WeldVerticleTest {
+public class WeldVertxObserversTest {
 
     private Vertx vertx;
 
     @Before
     public void init(TestContext context) {
         vertx = Vertx.vertx();
-        vertx.deployVerticle(new WeldVerticle(), context.asyncAssertSuccess());
-        vertx.createHttpServer().requestHandler(request -> {
-            request.response().end("Hello world");
-        }).listen(8080, context.asyncAssertSuccess());
+        Async async = context.async();
+        vertx.deployVerticle(new WeldVerticle(), r -> {
+            if (r.succeeded()) {
+                async.complete();
+            } else {
+                context.fail(r.cause());
+            }
+        });
         // We don't expect the tests to run in parallel
         VertxObservers.SYNCHRONIZER.clear();
     }

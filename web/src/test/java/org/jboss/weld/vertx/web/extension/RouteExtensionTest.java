@@ -39,6 +39,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
 /**
+ * Test that RouteExtension is usable even without Weld verticles.
  *
  * @author Martin Kouba
  */

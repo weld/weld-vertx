@@ -19,12 +19,14 @@ package org.jboss.weld.vertx;
 import static org.jboss.weld.vertx.WeldVerticle.createDefaultWeld;
 import static org.junit.Assert.assertTrue;
 
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.Vertx;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -37,16 +39,21 @@ public class CustomWeldVerticleTest {
 
     private Vertx vertx;
 
-    private WeldVerticle weldVerticle;
+    private WeldContainer weld;
 
     @Before
     public void init(TestContext context) {
         vertx = Vertx.vertx();
-        weldVerticle = new WeldVerticle(createDefaultWeld().disableDiscovery().beanClasses(CoolHelloService.class));
-        vertx.deployVerticle(weldVerticle, context.asyncAssertSuccess());
-        vertx.createHttpServer().requestHandler(request -> {
-            request.response().end("Hello world");
-        }).listen(8080, context.asyncAssertSuccess());
+        WeldVerticle weldVerticle = new WeldVerticle(createDefaultWeld().disableDiscovery().beanClasses(CoolHelloService.class));
+        Async async = context.async();
+        vertx.deployVerticle(weldVerticle, r -> {
+            if (r.succeeded()) {
+                weld = weldVerticle.container();
+                async.complete();
+            } else {
+                context.fail(r.cause());
+            }
+        });
     }
 
     @After
@@ -56,8 +63,8 @@ public class CustomWeldVerticleTest {
 
     @Test
     public void testDiscovery() throws InterruptedException {
-        assertTrue(weldVerticle.container().select(CoolService.class).isUnsatisfied());
-        assertTrue(weldVerticle.container().select(CoolHelloService.class).isResolvable());
+        assertTrue(weld.select(CoolService.class).isUnsatisfied());
+        assertTrue(weld.select(CoolHelloService.class).isResolvable());
     }
 
 }
