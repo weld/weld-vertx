@@ -1,6 +1,8 @@
+dist: trusty
 language: java
 jdk:
   - oraclejdk8
+  - openjdk8
 env:
   - WELD_PROFILE=weld2
   - WELD_PROFILE=weld3
