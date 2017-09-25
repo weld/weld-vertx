@@ -46,10 +46,10 @@ import me.escoffier.vertx.completablefuture.VertxCompletableFuture;
  *
  * <ul>
  * <ol>
- * hold a special creational context so that we're able to correctly destroy dependent bean instances
+ * holds a special creational context so that we're able to correctly destroy dependent bean instances
  * </ol>
  * <ol>
- * the set of qualifiers of this bean is enhanced - see
+ * the set of qualifiers of this bean is enhanced so that it satisfies all injection points with required type {@link AsyncReference} - see
  * {@link VertxExtension#processAsyncReferenceInjectionPoints(javax.enterprise.inject.spi.ProcessInjectionPoint))}
  * </ol>
  * <ol>
