@@ -23,7 +23,7 @@ public class SayHelloService {
 
     public static final String MESSAGE = "Good bye EE, hello Vert.x!";
 
-    String hello() {
+    public String hello() {
         return MESSAGE;
     }
 

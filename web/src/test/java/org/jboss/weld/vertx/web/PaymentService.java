@@ -39,11 +39,11 @@ public class PaymentService {
         payments = Collections.unmodifiableList(payments);
     }
 
-    List<Payment> getPayments() {
+    public List<Payment> getPayments() {
         return payments;
     }
 
-    Payment getPayment(String id) {
+    public Payment getPayment(String id) {
         for (Payment payment : payments) {
             if (payment.getId().equals(id)) {
                 return payment;
@@ -52,7 +52,7 @@ public class PaymentService {
         return null;
     }
 
-    JsonObject encode(Payment payment) {
+    public JsonObject encode(Payment payment) {
         JsonObject result = new JsonObject();
         result.put("id", payment.getId());
         result.put("amount", payment.getAmount().toString());

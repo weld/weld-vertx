@@ -24,7 +24,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 
-class PaymentResource {
+public class PaymentResource {
 
     @WebRoute("/payments")
     static class PaymentsHandler implements Handler<RoutingContext> {

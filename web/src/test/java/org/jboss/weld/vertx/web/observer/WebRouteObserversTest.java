@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2016, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.weld.vertx.web;
+package org.jboss.weld.vertx.web.observer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -27,6 +27,11 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.vertx.Timeouts;
 import org.jboss.weld.vertx.WeldVerticle;
+import org.jboss.weld.vertx.web.PaymentService;
+import org.jboss.weld.vertx.web.RequestHelloService;
+import org.jboss.weld.vertx.web.SayHelloService;
+import org.jboss.weld.vertx.web.UniversalFailureHandler;
+import org.jboss.weld.vertx.web.WeldWebVerticle;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,20 +53,21 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  * @author Martin Kouba
  */
 @RunWith(VertxUnitRunner.class)
-public class WebRouteTest {
+public class WebRouteObserversTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT * 1000);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
         vertx = Vertx.vertx();
         Async async = context.async();
-        Weld weld = WeldVerticle.createDefaultWeld().disableDiscovery().packages(WebRouteTest.class);
+        Weld weld = WeldVerticle.createDefaultWeld().disableDiscovery().beanClasses(HelloRouteObserver.class, PaymentObserverResource.class,
+                SayHelloService.class, PaymentService.class, RequestHelloService.class);
         WeldWebVerticle weldVerticle = new WeldWebVerticle(weld);
         vertx.deployVerticle(weldVerticle, deploy -> {
             if (deploy.succeeded()) {
@@ -86,30 +92,17 @@ public class WebRouteTest {
     }
 
     @Test
-    public void testHandlers() throws InterruptedException {
+    public void testHelloObserver() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         assertEquals(SayHelloService.MESSAGE, poll());
-        client.post("/hello").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, poll());
-        client.get("/helloget").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals(SayHelloService.MESSAGE, poll());
-        client.post("/helloget").handler(response -> SYNCHRONIZER.add("" + response.statusCode())).end();
-        assertEquals("404", poll());
         // Failures
         client.get("/fail/me").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(response.statusCode() + ":" + b.toString()))).end();
         assertEquals(500 + ":" + UniversalFailureHandler.TEXT, poll());
     }
 
     @Test
-    public void testOrder() throws InterruptedException {
-        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
-        client.get("/chain").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals("alphabravo", poll());
-    }
-
-    @Test
-    public void testNestedRoutes() throws InterruptedException {
+    public void testPaymentRoutes() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
         client.get("/payments").handler(r -> r.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         String response = poll().toString();
@@ -123,11 +116,6 @@ public class WebRouteTest {
         JsonObject barPayment = new JsonObject(response);
         assertEquals("bar", barPayment.getString("id"));
         assertEquals("100", barPayment.getString("amount"));
-        // Test ignored routes
-        client.get("/payments/inner").handler(r -> SYNCHRONIZER.add("" + r.statusCode())).end();
-        assertEquals("404", poll());
-        client.get("/payments/string").handler(r -> SYNCHRONIZER.add("" + r.statusCode())).end();
-        assertEquals("404", poll());
     }
 
     @Test
@@ -143,12 +131,12 @@ public class WebRouteTest {
     }
 
     @Test
-    public void testRepeatingHandler() throws InterruptedException {
+    public void testRepeatable() throws InterruptedException {
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
-        client.get("/path-1").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals("oops", poll());
-        client.get("/path-2").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
-        assertEquals("oops", poll());
+        client.get("/foo").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals("path:/foo", poll());
+        client.get("/bar").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals("path:/bar", poll());
     }
 
     private Object poll() throws InterruptedException {
