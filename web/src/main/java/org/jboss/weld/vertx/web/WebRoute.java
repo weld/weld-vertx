@@ -16,6 +16,7 @@
  */
 package org.jboss.weld.vertx.web;
 
+import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -32,16 +33,44 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * This annotation is used to configure a {@link Route} in a declarative way. It is repeatable - if multiple annotations are declared on a handler class a
- * single handler instance is used for multiple routes.
+ * This annotation is used to configure a {@link Route} in a declarative way. The target can be a class which implements {@link Handler} with
+ * {@link RoutingContext} as an event type:
+ *
+ * <pre>
+ * &#64;WebRoute("/hello")
+ * class HelloHandler implements Handler&lt;RoutingContext&gt; {
+ *
+ *     public void handle(RoutingContext ctx) {
+ *         ctx.response().setStatusCode(200).end("Hello!");
+ *     }
+ * }
+ * </pre>
+ *
+ * or an observer method which observes {@link RoutingContext}:
+ *
+ * <pre>
+ * &#64;ApplicationScoped
+ * class Hello {
+ *
+ *     &#64;WebRoute("/hello")
+ *     void hello(&#64;Observes RoutingContext ctx) {
+ *         ctx.response().setStatusCode(200).end("Hello!");
+ *     }
+ * }
+ * </pre>
  *
  * <p>
- * The annotated class must not be an inner class and must implement {@link Handler} with {@link RoutingContext} as an event type, otherwise it is ignored.
+ * The annotation is repeatable, i.e. multiple annotations may be declared on a handler class or an observer method. In this case, a handler instance or
+ * observer method is used for multiple routes.
  * </p>
  *
  * <p>
- * Handler instances are not CDI contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE components like servlets).
- * However, dependency injection, interceptors and decorators are supported.
+ * An annotated class which is an inner class or does not implement {@link Handler} with {@link RoutingContext} is ignored.
+ * </p>
+ *
+ * <p>
+ * Constructed handler instances are not CDI contextual intances. In other words, they're not managed by the CDI container (similarly as Java EE components like
+ * servlets). However, dependency injection, interceptors and decorators are supported.
  * </p>
  *
  * <p>
@@ -57,7 +86,7 @@ import io.vertx.ext.web.RoutingContext;
  */
 @Repeatable(WebRoutes.class)
 @Retention(RUNTIME)
-@Target(TYPE)
+@Target({ TYPE, METHOD })
 @Stereotype
 public @interface WebRoute {
 

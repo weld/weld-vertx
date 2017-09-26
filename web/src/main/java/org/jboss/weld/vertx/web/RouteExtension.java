@@ -19,14 +19,20 @@ package org.jboss.weld.vertx.web;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
 import javax.enterprise.inject.spi.Annotated;
+import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.spi.AnnotatedParameter;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.BeforeShutdown;
@@ -35,6 +41,12 @@ import javax.enterprise.inject.spi.InjectionTarget;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.WithAnnotations;
 
+import org.jboss.weld.bean.builtin.BeanManagerProxy;
+import org.jboss.weld.util.annotated.ForwardingAnnotatedMethod;
+import org.jboss.weld.util.annotated.ForwardingAnnotatedParameter;
+import org.jboss.weld.util.annotated.ForwardingAnnotatedType;
+import org.jboss.weld.util.collections.ImmutableList;
+import org.jboss.weld.util.collections.ImmutableSet;
 import org.jboss.weld.util.reflection.HierarchyDiscovery;
 import org.jboss.weld.util.reflection.Reflections;
 
@@ -47,7 +59,12 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * This extensions allows to register {@link Route} handlers discovered during container initialization.
+ * This extensions allows to register {@link Route} handlers and observers discovered during container initialization.
+ *
+ * <p>
+ * <b>Implementation notes</b>: Unfortunately, currently it's not possible to use CDI 2.0 configurators and so the implementation of route observer methods is
+ * rather clumsy. Once we drop CDI 1.2 support we should rewrite the appropriate parts to leverage {@code ProcessObserverMethod#configureObserverMethod()}.
+ * </p>
  *
  * @author Martin Kouba
  * @see WebRoute
@@ -60,18 +77,35 @@ public class RouteExtension implements Extension {
 
     private final List<HandlerInstance<?>> handlerInstances = new LinkedList<>();
 
+    private final List<RouteObserver> routeObservers = new LinkedList<>();
+
     private BeanManager beanManager;
 
     // Implementation note - ProcessAnnotatedType<? extends Handler<RoutingContext>> is more correct but prevents Weld from using
     // FastProcessAnnotatedTypeResolver
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    void processHandlerAnnotatedType(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<? extends Handler> event) {
-        AnnotatedType<? extends Handler> annotatedType = event.getAnnotatedType();
-        // Double check the handler type
+    void processHandlerAnnotatedType(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<?> event, BeanManager beanManager) {
+        AnnotatedType<?> annotatedType = event.getAnnotatedType();
         if (isWebRoute(annotatedType) && isRouteHandler(annotatedType)) {
             LOGGER.debug("Route handler found: {0}", annotatedType);
             // At this point it is safe to cast the annotated type
             handlerTypes.add((AnnotatedType<? extends Handler<RoutingContext>>) annotatedType);
+        } else {
+            // Collect route observer methods
+            Map<AnnotatedMethod<?>, Id> routers = new HashMap<>();
+            for (AnnotatedMethod<?> method : annotatedType.getMethods()) {
+                WebRoute[] webRoutes = getWebRoutes(method);
+                if (webRoutes.length > 0) {
+                    LOGGER.debug("Route observer found: {0}", method);
+                    Id id = Id.Literal.of(UUID.randomUUID().toString());
+                    routeObservers.add(new RouteObserver(id, webRoutes));
+                    routers.put(method, id);
+                }
+            }
+            if (!routers.isEmpty()) {
+                // We need to add Id qualifier to the event param
+                event.setAnnotatedType((AnnotatedType) wrapAnnotatedType(annotatedType, routers));
+            }
         }
     }
 
@@ -85,11 +119,15 @@ public class RouteExtension implements Extension {
         }
         handlerInstances.clear();
         handlerTypes.clear();
+        routeObservers.clear();
     }
 
     public void registerRoutes(Router router) {
         for (AnnotatedType<? extends Handler<RoutingContext>> annotatedType : handlerTypes) {
             processHandlerType(annotatedType, router);
+        }
+        for (RouteObserver routeObserver : routeObservers) {
+            routeObserver.process(router);
         }
     }
 
@@ -107,7 +145,7 @@ public class RouteExtension implements Extension {
         }
     }
 
-    private void addRoute(Router router, Handler<RoutingContext> handler, WebRoute webRoute) {
+    private static void addRoute(Router router, Handler<RoutingContext> handler, WebRoute webRoute) {
         Route route;
         if (!webRoute.regex().isEmpty()) {
             route = router.routeWithRegex(webRoute.regex());
@@ -189,7 +227,7 @@ public class RouteExtension implements Extension {
         return false;
     }
 
-    class HandlerInstance<T extends Handler<RoutingContext>> {
+    static class HandlerInstance<T extends Handler<RoutingContext>> {
 
         private final AnnotatedType<T> annotatedType;
 
@@ -216,6 +254,143 @@ public class RouteExtension implements Extension {
             } catch (Exception e) {
                 LOGGER.error("Error disposing a route handler for {0}", e, annotatedType);
             }
+        }
+
+    }
+
+    class RouteObserver {
+
+        private final Id id;
+
+        private final WebRoute[] webRoutes;
+
+        public RouteObserver(Id id, WebRoute[] webRoutes) {
+            this.id = id;
+            this.webRoutes = webRoutes;
+        }
+
+        void process(Router router) {
+            Event<RoutingContext> event = BeanManagerProxy.unwrap(beanManager).event().select(RoutingContext.class, id);
+            Handler<RoutingContext> handler = (ctx) -> {
+                event.fire(ctx);
+            };
+            for (WebRoute webRoute : webRoutes) {
+                addRoute(router, handler, webRoute);
+            }
+        }
+
+    }
+
+    // The following constructs are neeed until we drop CDI 1.2 support
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private <T> AnnotatedType<T> wrapAnnotatedType(AnnotatedType<T> annotatedType, Map<AnnotatedMethod<?>, Id> routers) {
+        ImmutableSet.Builder<AnnotatedMethod<?>> methodsBuilder = ImmutableSet.builder();
+
+        for (AnnotatedMethod<?> annotatedMethod : annotatedType.getMethods()) {
+
+            Id id = routers.get(annotatedMethod);
+            if (id != null) {
+                ImmutableList.Builder<AnnotatedParameter<?>> paramsBuilder = ImmutableList.builder();
+
+                for (AnnotatedParameter<?> param : annotatedMethod.getParameters()) {
+                    if (param.isAnnotationPresent(Observes.class)) {
+                        // Add id qualifier
+                        paramsBuilder.add(new WrappedParam(param, ImmutableSet.builder().addAll(param.getAnnotations()).add(id).build()));
+                    } else {
+                        paramsBuilder.add(param);
+                    }
+                }
+                methodsBuilder.add(new WrappedMethod(annotatedMethod, paramsBuilder.build()));
+            } else {
+                // Use the method as it is
+                methodsBuilder.add(annotatedMethod);
+            }
+        }
+        return new WrappedType(annotatedType, methodsBuilder.build());
+    }
+
+    static class WrappedType<T> extends ForwardingAnnotatedType<T> {
+
+        private final AnnotatedType<T> annotatedType;
+
+        private final Set<AnnotatedMethod<? super T>> methods;
+
+        WrappedType(AnnotatedType<T> annotatedType, Set<AnnotatedMethod<? super T>> methods) {
+            this.annotatedType = annotatedType;
+            this.methods = methods;
+        }
+
+        @Override
+        public Set<AnnotatedMethod<? super T>> getMethods() {
+            return methods;
+        }
+
+        @Override
+        public AnnotatedType<T> delegate() {
+            return annotatedType;
+        }
+
+    }
+
+    static class WrappedMethod<T> extends ForwardingAnnotatedMethod<T> {
+
+        private final AnnotatedMethod<T> annotatedMethod;
+
+        private final List<AnnotatedParameter<T>> parameters;
+
+        WrappedMethod(AnnotatedMethod<T> annotatedMethod, List<AnnotatedParameter<T>> parameters) {
+            this.annotatedMethod = annotatedMethod;
+            this.parameters = parameters;
+        }
+
+        @Override
+        public List<AnnotatedParameter<T>> getParameters() {
+            return parameters;
+        }
+
+        @Override
+        protected AnnotatedMethod<T> delegate() {
+            return annotatedMethod;
+        }
+
+    }
+
+    static class WrappedParam<T> extends ForwardingAnnotatedParameter<T> {
+
+        private final AnnotatedParameter<T> annotatedParameter;
+
+        private final Set<Annotation> annotations;
+
+        WrappedParam(AnnotatedParameter<T> annotatedParameter, Set<Annotation> annotations) {
+            this.annotatedParameter = annotatedParameter;
+            this.annotations = annotations;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public <A extends Annotation> A getAnnotation(Class<A> annotationType) {
+            for (Annotation annotation : annotations) {
+                if (annotation.annotationType().equals(annotationType)) {
+                    return (A) annotation;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Set<Annotation> getAnnotations() {
+            return annotations;
+        }
+
+        @Override
+        public boolean isAnnotationPresent(Class<? extends Annotation> annotationType) {
+            return getAnnotation(annotationType) != null;
+        }
+
+        @Override
+        protected AnnotatedParameter<T> delegate() {
+            return annotatedParameter;
         }
 
     }

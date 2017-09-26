@@ -31,7 +31,7 @@ public class RequestHelloService {
         id = UUID.randomUUID().toString();
     }
 
-    String hello() {
+    public String hello() {
         return "Hello from " + id;
     }
 

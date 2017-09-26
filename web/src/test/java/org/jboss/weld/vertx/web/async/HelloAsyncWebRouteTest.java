@@ -22,7 +22,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.vertx.AsyncReference;
 import org.jboss.weld.vertx.Timeouts;
+import org.jboss.weld.vertx.WeldVerticle;
 import org.jboss.weld.vertx.web.SayHelloService;
 import org.jboss.weld.vertx.web.WeldWebVerticle;
 import org.junit.After;
@@ -58,7 +61,8 @@ public class HelloAsyncWebRouteTest {
     public void init(TestContext context) throws InterruptedException {
         vertx = Vertx.vertx();
         Async async = context.async();
-        final WeldWebVerticle weldVerticle = new WeldWebVerticle();
+        Weld weld = WeldVerticle.createDefaultWeld().disableDiscovery().packages(HelloAsyncWebRouteTest.class, AsyncReference.class);
+        WeldWebVerticle weldVerticle = new WeldWebVerticle(weld);
         vertx.deployVerticle(weldVerticle, deploy -> {
             if (deploy.succeeded()) {
                 // Configure the router after Weld bootstrap finished
@@ -66,9 +70,11 @@ public class HelloAsyncWebRouteTest {
                     if (listen.succeeded()) {
                         async.complete();
                     } else {
-                        context.fail();
+                        context.fail(listen.cause());
                     }
                 });
+            } else {
+                context.fail(deploy.cause());
             }
         });
         SYNCHRONIZER.clear();

@@ -16,27 +16,51 @@
  */
 package org.jboss.weld.vertx.web;
 
+import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import javax.enterprise.inject.Stereotype;
+import javax.enterprise.util.AnnotationLiteral;
+import javax.inject.Qualifier;
 
 /**
- * Containing annotation type for repeating annotation {@link WebRoute}.
- * <p>
- * This annotation is annotated with {@link Stereotype} to workaround the limitations of the <code>annotated</code> bean discovery mode.
+ * This qualifier is used to distinguish observer methods annotated with {@link WebRoute}.
  *
  * @author Martin Kouba
  */
+@Target({ TYPE, METHOD, PARAMETER, FIELD })
 @Retention(RUNTIME)
-@Target({ TYPE, METHOD })
-@Stereotype
-public @interface WebRoutes {
+@Documented
+@Qualifier
+public @interface Id {
 
-    WebRoute[] value();
+    String value();
+
+    public static class Literal extends AnnotationLiteral<Id> implements Id {
+
+        private static final long serialVersionUID = 1L;
+
+        public static Literal of(String value) {
+            return new Literal(value);
+        }
+
+        public Literal(String value) {
+            this.value = value;
+        }
+
+        private final String value;
+
+        @Override
+        public String value() {
+            return value;
+        }
+
+    }
 
 }
