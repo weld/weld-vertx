@@ -1,7 +1,7 @@
 == Service Proxy
 
-* allows to inject and invoke service proxies (as defined in https://github.com/vert-x3/vertx-service-proxy)
-* the result handler is wrapped and executed using `ServiceProxySupport#getExecutor()` (`Vertx.executeBlocking()` by default)
+* Allows to inject and invoke service proxies (as defined in https://github.com/vert-x3/vertx-service-proxy)
+* The result handler is wrapped and executed using `ServiceProxySupport#getExecutor()` (`Vertx.executeBlocking()` by default)
 
 .Artifact GAV
 [source,xml]

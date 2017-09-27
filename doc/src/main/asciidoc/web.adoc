@@ -1,7 +1,7 @@
 [[web]]
 == Web
 
-* allows to define/register an `io.vertx.ext.web.Route` in a declarative way, using `@org.jboss.weld.vertx.web.WebRoute`
+Allows to configure an `io.vertx.ext.web.Route` in a declarative way, using `@org.jboss.weld.vertx.web.WebRoute` annotation.
 
 .Artifact GAV
 [source,xml]
@@ -15,7 +15,9 @@
 
 === Declaring routes in a declarative way
 
-`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers discovered during container initialization. In other words, it's possible to configure a `Route` in a declarative way - using `org.jboss.weld.vertx.web.WebRoute` annotation:
+`weld-vertx-web` extends `weld-vertx-core` and `vertx-web` functionality and allows to automatically register `Route` handlers and observer methods discovered during container initialization.
+In other words, it's possible to configure a `Route` in a declarative way - using `org.jboss.weld.vertx.web.WebRoute` annotation.
+The target can be a class which implements `Handler<RoutingContext>`:
 
 [source,java]
 ----
@@ -24,7 +26,7 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
 @WebRoute("/hello") // Matches all HTTP methods
-public class HelloWorldHandler implements Handler<RoutingContext> {
+class HelloWorldHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext ctx) {
@@ -33,8 +35,26 @@ public class HelloWorldHandler implements Handler<RoutingContext> {
 }
 ----
 
-Handler instances are not contextual intances, i.e. they're not managed by the CDI container (similarly as Java EE components).
-However, dependency injection and interception is supported:
+Or an observer method which observes `RoutingContext`:
+
+[source,java]
+----
+import org.jboss.weld.vertx.web.WebRoute;
+import io.vertx.ext.web.RoutingContext;
+
+@ApplicationScoped
+class HelloWorld {
+
+    @WebRoute("/hello") // Matches all HTTP methods
+    void hello(@Observes RoutingContext ctx) {
+        ctx.response().setStatusCode(200).end("Hello world!");
+    }
+}
+----
+
+Constructed handler instances are not CDI contextual intances.
+In other words, they're not managed by the CDI container (similarly as Java EE components like servlets).
+However, dependency injection, interceptors and decorators are supported:
 
 [source,java]
 ----
@@ -58,7 +78,8 @@ public class HelloHandler implements Handler<RoutingContext> {
 ----
 
 `@WebRoute` is a repeatable annotation.
-If multiple annotations are declared on a handler class a single handler instance is used for multiple routes:
+ This means that multiple annotations may be declared on a handler class or an observer method.
+ In this case, a handler instance or an observer method is used for multiple routes.
 
 [source,java]
 ----
@@ -83,7 +104,7 @@ public class SuperHandler implements Handler<RoutingContext> {
 === How does it work?
 
 The central point of the module is the `org.jboss.weld.vertx.web.RouteExtension`.
-Its primary task is to find all classes annotated with `@WebRoute` and register routes through `RouteExtension.registerRoutes(Router)`.
+Its primary task is to find all handler classes and observer methods annotated with `@WebRoute` and register routes through `RouteExtension.registerRoutes(Router)`.
 
 `org.jboss.weld.vertx.web.WeldWebVerticle` extends `org.jboss.weld.vertx.WeldVerticle`, registers `RouteExtension` automatically, and also provides the `WeldWebVerticle.registerRoutes(Router)` method (which delegates to `RouteExtension`):
 
@@ -92,8 +113,8 @@ Its primary task is to find all classes annotated with `@WebRoute` and register 
  class MyApp {
 
      public static void main(String[] args) {
-         final Vertx vertx = Vertx.vertx();
-         final WeldWebVerticle weldVerticle = new WeldWebVerticle();
+         Vertx vertx = Vertx.vertx();
+         WeldWebVerticle weldVerticle = new WeldWebVerticle();
          vertx.deployVerticle(weldVerticle, result -> {
              if (result.succeeded()) {
                  // Configure the router after Weld bootstrap finished

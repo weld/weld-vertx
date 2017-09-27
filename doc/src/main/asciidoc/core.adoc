@@ -1,11 +1,11 @@
 [[core]]
 == Core
 
-* provides `WeldVerticle` which starts/stops the Weld SE container
-* makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus
-* provides `@ApplicationScoped` beans for `io.vertx.core.Vertx` and `io.vertx.core.Context`
-* allows to deploy Verticles produced/injected by Weld
-* provides "async" helpers such as `AsyncReference` and `AsyncWorker`
+* Provides `WeldVerticle` which starts/stops the Weld SE container
+* Makes it possible to notify CDI observer methods when a message is sent via Vert.x event bus
+* Provides `@ApplicationScoped` beans for `io.vertx.core.Vertx` and `io.vertx.core.Context`
+* Allows to deploy Verticles produced/injected by Weld
+* Provides "async" helpers such as `AsyncReference` and `AsyncWorker`
 
 .Artifact GAV
 [source,xml]

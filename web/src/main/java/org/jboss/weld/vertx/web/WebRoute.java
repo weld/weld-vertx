@@ -60,8 +60,8 @@ import io.vertx.ext.web.RoutingContext;
  * </pre>
  *
  * <p>
- * The annotation is repeatable, i.e. multiple annotations may be declared on a handler class or an observer method. In this case, a handler instance or
- * observer method is used for multiple routes.
+ * The annotation is repeatable, i.e. The annotation is repeatable, i.e. multiple annotations may be declared on a handler class or an observer method. In this
+ * case, a handler instance or an observer method is used for multiple routes.
  * </p>
  *
  * <p>

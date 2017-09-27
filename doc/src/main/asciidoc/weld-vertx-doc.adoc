@@ -4,6 +4,7 @@
 :sectnumlevels: 4
 :sectnums:
 
+[.lead]
 The primary purpose of `weld-vertx` is to bring the CDI programming model into the http://vertx.io/[Vert.x] ecosystem, i.e. to extend the tool-kit for building reactive applications on the JVM.
 
 http://weld.cdi-spec.org/[Weld] is the reference implementation of CDI. It’s part of a community of http://www.redhat.com/[Red Hat] projects.
