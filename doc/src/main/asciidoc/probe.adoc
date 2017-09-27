@@ -1,7 +1,7 @@
 == Probe
 
-* allows to use http://docs.jboss.org/weld/reference/latest/en-US/html/devmode.html#probe[Probe] development tool in a Vert.x application
-* depends on `weld-vertx-web`
+* Allows to use http://docs.jboss.org/weld/reference/latest/en-US/html/devmode.html#probe[Probe] development tool in a Vert.x application
+* Depends on `weld-vertx-web`
 
 .Artifact GAV
 [source,xml]
