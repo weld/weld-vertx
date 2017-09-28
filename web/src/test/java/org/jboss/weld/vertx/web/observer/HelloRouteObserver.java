@@ -60,4 +60,14 @@ public class HelloRouteObserver {
         ctx.response().setStatusCode(200).end(helloService.hello());
     }
 
+    @WebRoute(value = "/hello-chain", order = 2)
+    void helloChain(@Observes RoutingContext ctx) {
+        ctx.response().setStatusCode(200).end("ok");
+    }
+
+    @WebRoute(value = "/hello-chain", order = 1)
+    void helloChainIgnored(RoutingContext ctx) {
+        ctx.fail(500);
+    }
+
 }
