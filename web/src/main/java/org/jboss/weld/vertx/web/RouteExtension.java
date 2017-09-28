@@ -92,19 +92,23 @@ public class RouteExtension implements Extension {
             handlerTypes.add((AnnotatedType<? extends Handler<RoutingContext>>) annotatedType);
         } else {
             // Collect route observer methods
-            Map<AnnotatedMethod<?>, Id> routers = new HashMap<>();
+            Map<String, Id> routes = new HashMap<>();
             for (AnnotatedMethod<?> method : annotatedType.getMethods()) {
                 WebRoute[] webRoutes = getWebRoutes(method);
                 if (webRoutes.length > 0) {
-                    LOGGER.debug("Route observer found: {0}", method);
+                    if (!hasEventParameter(method)) {
+                        LOGGER.warn("Ignoring non-observer method annotated with @WebRoute: {0}", method.getJavaMember().toGenericString());
+                        continue;
+                    }
+                    LOGGER.debug("Route observer found: {0}", method.getJavaMember().toGenericString());
                     Id id = Id.Literal.of(UUID.randomUUID().toString());
                     routeObservers.add(new RouteObserver(id, webRoutes));
-                    routers.put(method, id);
+                    routes.put(method.getJavaMember().toGenericString(), id);
                 }
             }
-            if (!routers.isEmpty()) {
+            if (!routes.isEmpty()) {
                 // We need to add Id qualifier to the event param
-                event.setAnnotatedType((AnnotatedType) wrapAnnotatedType(annotatedType, routers));
+                event.setAnnotatedType((AnnotatedType) wrapAnnotatedType(annotatedType, routes));
             }
         }
     }
@@ -272,6 +276,7 @@ public class RouteExtension implements Extension {
         void process(Router router) {
             Event<RoutingContext> event = BeanManagerProxy.unwrap(beanManager).event().select(RoutingContext.class, id);
             Handler<RoutingContext> handler = (ctx) -> {
+                LOGGER.debug("Execute observer route for: " + id);
                 event.fire(ctx);
             };
             for (WebRoute webRoute : webRoutes) {
@@ -284,16 +289,15 @@ public class RouteExtension implements Extension {
     // The following constructs are neeed until we drop CDI 1.2 support
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private <T> AnnotatedType<T> wrapAnnotatedType(AnnotatedType<T> annotatedType, Map<AnnotatedMethod<?>, Id> routers) {
+    private <T> AnnotatedType<T> wrapAnnotatedType(AnnotatedType<T> annotatedType, Map<String, Id> routers) {
         ImmutableSet.Builder<AnnotatedMethod<?>> methodsBuilder = ImmutableSet.builder();
 
-        for (AnnotatedMethod<?> annotatedMethod : annotatedType.getMethods()) {
+        for (AnnotatedMethod<?> method : annotatedType.getMethods()) {
 
-            Id id = routers.get(annotatedMethod);
+            Id id = routers.get(method.getJavaMember().toGenericString());
             if (id != null) {
                 ImmutableList.Builder<AnnotatedParameter<?>> paramsBuilder = ImmutableList.builder();
-
-                for (AnnotatedParameter<?> param : annotatedMethod.getParameters()) {
+                for (AnnotatedParameter<?> param : method.getParameters()) {
                     if (param.isAnnotationPresent(Observes.class)) {
                         // Add id qualifier
                         paramsBuilder.add(new WrappedParam(param, ImmutableSet.builder().addAll(param.getAnnotations()).add(id).build()));
@@ -301,13 +305,22 @@ public class RouteExtension implements Extension {
                         paramsBuilder.add(param);
                     }
                 }
-                methodsBuilder.add(new WrappedMethod(annotatedMethod, paramsBuilder.build()));
+                methodsBuilder.add(new WrappedMethod(method, paramsBuilder.build()));
             } else {
                 // Use the method as it is
-                methodsBuilder.add(annotatedMethod);
+                methodsBuilder.add(method);
             }
         }
         return new WrappedType(annotatedType, methodsBuilder.build());
+    }
+
+    private boolean hasEventParameter(AnnotatedMethod<?> annotatedMethod) {
+        for (AnnotatedParameter<?> param : annotatedMethod.getParameters()) {
+            if (param.isAnnotationPresent(Observes.class)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static class WrappedType<T> extends ForwardingAnnotatedType<T> {

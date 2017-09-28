@@ -60,7 +60,7 @@ public class WebRouteObserversTest {
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT * 1000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
@@ -137,6 +137,13 @@ public class WebRouteObserversTest {
         assertEquals("path:/foo", poll());
         client.get("/bar").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         assertEquals("path:/bar", poll());
+    }
+
+    @Test
+    public void testIgnored() throws InterruptedException {
+        HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
+        client.get("/hello-chain").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        assertEquals("ok", poll());
     }
 
     private Object poll() throws InterruptedException {
