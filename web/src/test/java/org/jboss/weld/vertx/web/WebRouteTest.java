@@ -98,7 +98,7 @@ public class WebRouteTest {
         assertEquals("404", poll());
         // Failures
         client.get("/fail/me").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(response.statusCode() + ":" + b.toString()))).end();
-        assertEquals(500 + ":" + UniversalFailureHandler.TEXT, poll());
+        assertEquals("500:/fail/me", poll());
     }
 
     @Test

@@ -25,7 +25,6 @@ import javax.enterprise.event.Observes;
 import org.jboss.weld.context.activator.ActivateRequestContext;
 import org.jboss.weld.vertx.web.RequestHelloService;
 import org.jboss.weld.vertx.web.SayHelloService;
-import org.jboss.weld.vertx.web.UniversalFailureHandler;
 import org.jboss.weld.vertx.web.WebRoute;
 
 import io.vertx.ext.web.RoutingContext;
@@ -46,12 +45,12 @@ public class HelloRouteObserver {
 
     @WebRoute("/fail/*")
     void alwaysFail(@Observes RoutingContext ctx) {
-        ctx.fail(500);
+        throw new IllegalStateException();
     }
 
     @WebRoute(type = FAILURE)
     void universalFailure(@Observes RoutingContext ctx) {
-        ctx.response().setStatusCode(ctx.statusCode()).end(UniversalFailureHandler.TEXT);
+        ctx.response().setStatusCode(500).end(ctx.request().path());
     }
 
     @WebRoute(value = "/request-context-active", type = BLOCKING)

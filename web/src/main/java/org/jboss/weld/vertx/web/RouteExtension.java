@@ -231,7 +231,7 @@ public class RouteExtension implements Extension {
         return false;
     }
 
-    static class HandlerInstance<T extends Handler<RoutingContext>> {
+    private static class HandlerInstance<T extends Handler<RoutingContext>> {
 
         private final AnnotatedType<T> annotatedType;
 
@@ -262,7 +262,7 @@ public class RouteExtension implements Extension {
 
     }
 
-    class RouteObserver {
+    private class RouteObserver {
 
         private final Id id;
 
@@ -274,14 +274,31 @@ public class RouteExtension implements Extension {
         }
 
         void process(Router router) {
-            Event<RoutingContext> event = BeanManagerProxy.unwrap(beanManager).event().select(RoutingContext.class, id);
-            Handler<RoutingContext> handler = (ctx) -> {
-                LOGGER.debug("Execute observer route for: " + id);
-                event.fire(ctx);
-            };
+            Handler<RoutingContext> handler = new ObserverHandlerInstance(this, BeanManagerProxy.unwrap(beanManager).event().select(RoutingContext.class, id));
             for (WebRoute webRoute : webRoutes) {
                 addRoute(router, handler, webRoute);
             }
+        }
+
+    }
+
+    private static class ObserverHandlerInstance implements Handler<RoutingContext> {
+
+        private final RouteObserver routeObserver;
+
+        private final Event<RoutingContext> event;
+
+        public ObserverHandlerInstance(RouteObserver routeObserver, Event<RoutingContext> event) {
+            this.routeObserver = routeObserver;
+            this.event = event;
+        }
+
+        @Override
+        public void handle(RoutingContext ctx) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Fire RoutingContext event with {0} for {1}", routeObserver.id, routeObserver.webRoutes);
+            }
+            event.fire(ctx);
         }
 
     }
