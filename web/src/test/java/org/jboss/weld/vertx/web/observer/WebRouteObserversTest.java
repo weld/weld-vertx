@@ -30,7 +30,6 @@ import org.jboss.weld.vertx.WeldVerticle;
 import org.jboss.weld.vertx.web.PaymentService;
 import org.jboss.weld.vertx.web.RequestHelloService;
 import org.jboss.weld.vertx.web.SayHelloService;
-import org.jboss.weld.vertx.web.UniversalFailureHandler;
 import org.jboss.weld.vertx.web.WeldWebVerticle;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +59,7 @@ public class WebRouteObserversTest {
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT * 1000);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
@@ -98,7 +97,7 @@ public class WebRouteObserversTest {
         assertEquals(SayHelloService.MESSAGE, poll());
         // Failures
         client.get("/fail/me").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(response.statusCode() + ":" + b.toString()))).end();
-        assertEquals(500 + ":" + UniversalFailureHandler.TEXT, poll());
+        assertEquals("500:/fail/me", poll());
     }
 
     @Test

@@ -24,11 +24,9 @@ import io.vertx.ext.web.RoutingContext;
 @WebRoute(type = FAILURE)
 public class UniversalFailureHandler implements Handler<RoutingContext> {
 
-    public static final String TEXT = "<html><body><h1>Failure</h1></body></html>";
-
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().setStatusCode(ctx.statusCode()).end(TEXT);
+        ctx.response().setStatusCode(ctx.statusCode() != -1 ? ctx.statusCode() : 500).end(ctx.request().path());
     }
 
 }
