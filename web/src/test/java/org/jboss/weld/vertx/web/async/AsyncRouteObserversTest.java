@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2016, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -48,20 +48,20 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  * @author Martin Kouba
  */
 @RunWith(VertxUnitRunner.class)
-public class HelloAsyncWebRouteTest {
+public class AsyncRouteObserversTest {
 
     static final BlockingQueue<Object> SYNCHRONIZER = new LinkedBlockingQueue<>();
 
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT * 1000);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
         vertx = Vertx.vertx();
         Async async = context.async();
-        Weld weld = WeldVerticle.createDefaultWeld().disableDiscovery().beanClasses(BlockingService.class, HelloAsyncHandler.class)
+        Weld weld = WeldVerticle.createDefaultWeld().disableDiscovery().beanClasses(AsyncRouteObserver.class, BlockingService.class)
                 .packages(AsyncReference.class);
         WeldWebVerticle weldVerticle = new WeldWebVerticle(weld);
         vertx.deployVerticle(weldVerticle, deploy -> {
@@ -87,10 +87,10 @@ public class HelloAsyncWebRouteTest {
     }
 
     @Test
-    public void testAsyncReferenceHandler() throws InterruptedException {
+    public void testHelloAsyncObserver() throws InterruptedException {
         BlockingService.reset();
         HttpClient client = vertx.createHttpClient(new HttpClientOptions().setDefaultPort(8080));
-        client.get("/helloasync").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
+        client.get("/hello-async").handler(response -> response.bodyHandler(b -> SYNCHRONIZER.add(b.toString()))).end();
         Assert.assertNull(SYNCHRONIZER.poll());
         BlockingService.complete(SayHelloService.MESSAGE);
         assertEquals(SayHelloService.MESSAGE, poll());

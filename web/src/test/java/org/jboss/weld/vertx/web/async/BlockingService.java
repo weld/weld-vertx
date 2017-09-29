@@ -29,13 +29,6 @@ import org.jboss.weld.vertx.Timeouts;
 @Dependent
 public class BlockingService {
 
-    static final BlockingService EMPTY;
-
-    static {
-        EMPTY = new BlockingService();
-        EMPTY.message = "";
-    }
-
     private static CompletableFuture<String> future;
 
     static void complete(String value) {
