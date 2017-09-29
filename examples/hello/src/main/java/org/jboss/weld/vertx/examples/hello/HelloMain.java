@@ -36,35 +36,35 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class HelloMain {
 
-	public static void main(String[] args) {
-		// First create a new Weld verticle
-		// Then deploy the verticle, i.e. start CDI container and discover all @WebRoute
-		// handlers
-		// If successfull create the router and start the webserver
-		Vertx vertx = Vertx.vertx();
-		WeldWebVerticle weldVerticle = new WeldWebVerticle();
-		vertx.deployVerticle(weldVerticle, result -> {
-			if (result.succeeded()) {
-				vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080);
-			} else {
-				throw new IllegalStateException("Weld verticle failure: " + result.cause());
-			}
-		});
-	}
+    public static void main(String[] args) {
+        // First create a new Weld verticle
+        // Then deploy the verticle, i.e. start CDI container and discover all @WebRoute
+        // handlers
+        // If successfull create the router and start the webserver
+        Vertx vertx = Vertx.vertx();
+        WeldWebVerticle weldVerticle = new WeldWebVerticle();
+        vertx.deployVerticle(weldVerticle, result -> {
+            if (result.succeeded()) {
+                vertx.createHttpServer().requestHandler(weldVerticle.createRouter()::accept).listen(8080);
+            } else {
+                throw new IllegalStateException("Weld verticle failure: " + result.cause());
+            }
+        });
+    }
 
-	// This handler is registered automatically
-	// Matches all HTTP methods and /hello path
-	@WebRoute("/hello")
-	static class HelloHandler implements Handler<RoutingContext> {
+    // This handler is registered automatically
+    // Matches all HTTP methods and /hello path
+    @WebRoute("/hello")
+    static class HelloHandler implements Handler<RoutingContext> {
 
-		@Override
-		public void handle(RoutingContext event) {
-			String name = event.request().getParam("name");
-			if (name == null) {
-				name = "developer";
-			}
-			event.response().setStatusCode(200).end("Hello " + name + "!");
-		}
+        @Override
+        public void handle(RoutingContext event) {
+            String name = event.request().getParam("name");
+            if (name == null) {
+                name = "developer";
+            }
+            event.response().setStatusCode(200).end("Hello " + name + "!");
+        }
 
-	}
+    }
 }
