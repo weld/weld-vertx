@@ -6,6 +6,7 @@
       <version>1.2.1-SNAPSHOT</version>
    </parent>
    <artifactId>weld-vertx-doc</artifactId>
+   <packaging>pom</packaging>
 
    <build>
       <plugins>
