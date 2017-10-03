@@ -59,7 +59,7 @@ public class WebRouteObserversTest {
     private Vertx vertx;
 
     @Rule
-    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT * 1000);
+    public Timeout globalTimeout = Timeout.millis(Timeouts.GLOBAL_TIMEOUT);
 
     @Before
     public void init(TestContext context) throws InterruptedException {
