@@ -17,6 +17,9 @@ The primary purpose of `weld-vertx` is to bring the CDI programming model into t
 * Allows to define/register an `io.vertx.ext.web.Route` in a declarative way, using `@org.jboss.weld.vertx.web.WebRoute` - see also [Web](https://github.com/weld/weld-vertx/blob/master/doc/src/main/asciidoc/web.adoc)
 * Allows to inject and invoke service proxies (as defined in https://github.com/vert-x3/vertx-service-proxy) - see also [Service Proxy](https://github.com/weld/weld-vertx/blob/master/doc/src/main/asciidoc/service-proxy.adoc)
 
+## Documentation
+
+Brief documentation can be found at: http://docs.jboss.org/weld/weld-vertx/latest/
 
 ## Building
 
