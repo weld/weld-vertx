@@ -107,6 +107,7 @@ public class AsyncReferenceTest {
         assertEquals(55, boss.juicyBing.get().value);
         assertNull(boss.juicyBar.cause());
         assertEquals(152, boss.juicyBar.get().code);
+        assertTrue(BlockingBarProducer.PRODUCER_USED.get());
     }
 
     @SuppressWarnings("serial")

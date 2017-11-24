@@ -63,7 +63,7 @@ public class EchoServiceVertxEBProxy implements EchoService {
 
   public void echo(String name, Handler<AsyncResult<String>> result) {
     if (closed) {
-      result.handle(Future.failedFuture(new IllegalStateException("Proxy is closed")));
+    result.handle(Future.failedFuture(new IllegalStateException("Proxy is closed")));
       return;
     }
     JsonObject _json = new JsonObject();

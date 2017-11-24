@@ -42,11 +42,6 @@ import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.jboss.weld.bean.builtin.BeanManagerProxy;
-import org.jboss.weld.util.annotated.ForwardingAnnotatedMethod;
-import org.jboss.weld.util.annotated.ForwardingAnnotatedParameter;
-import org.jboss.weld.util.annotated.ForwardingAnnotatedType;
-import org.jboss.weld.util.collections.ImmutableList;
-import org.jboss.weld.util.collections.ImmutableSet;
 import org.jboss.weld.util.reflection.HierarchyDiscovery;
 import org.jboss.weld.util.reflection.Reflections;
 
@@ -60,11 +55,6 @@ import io.vertx.ext.web.RoutingContext;
 
 /**
  * This extensions allows to register {@link Route} handlers and observers discovered during container initialization.
- *
- * <p>
- * <b>Implementation notes</b>: Unfortunately, currently it's not possible to use CDI 2.0 configurators and so the implementation of route observer methods is
- * rather clumsy. Once we drop CDI 1.2 support we should rewrite the appropriate parts to leverage {@code ProcessObserverMethod#configureObserverMethod()}.
- * </p>
  *
  * @author Martin Kouba
  * @see WebRoute
@@ -83,7 +73,7 @@ public class RouteExtension implements Extension {
 
     // Implementation note - ProcessAnnotatedType<? extends Handler<RoutingContext>> is more correct but prevents Weld from using
     // FastProcessAnnotatedTypeResolver
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({ "unchecked" })
     void processHandlerAnnotatedType(@Observes @WithAnnotations({ WebRoute.class, WebRoutes.class }) ProcessAnnotatedType<?> event, BeanManager beanManager) {
         AnnotatedType<?> annotatedType = event.getAnnotatedType();
         if (isWebRoute(annotatedType) && isRouteHandler(annotatedType)) {
@@ -108,7 +98,12 @@ public class RouteExtension implements Extension {
             }
             if (!routes.isEmpty()) {
                 // We need to add Id qualifier to the event param
-                event.setAnnotatedType((AnnotatedType) wrapAnnotatedType(annotatedType, routes));
+                event.configureAnnotatedType().methods().forEach(m -> {
+                    Id id = routes.get(m.getAnnotated().getJavaMember().toGenericString());
+                    if (id != null) {
+                        m.filterParams(p -> p.isAnnotationPresent(Observes.class)).findFirst().ifPresent(param -> param.add(id));
+                    }
+                });
             }
         }
     }
@@ -303,34 +298,6 @@ public class RouteExtension implements Extension {
 
     }
 
-    // The following constructs are neeed until we drop CDI 1.2 support
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private <T> AnnotatedType<T> wrapAnnotatedType(AnnotatedType<T> annotatedType, Map<String, Id> routers) {
-        ImmutableSet.Builder<AnnotatedMethod<?>> methodsBuilder = ImmutableSet.builder();
-
-        for (AnnotatedMethod<?> method : annotatedType.getMethods()) {
-
-            Id id = routers.get(method.getJavaMember().toGenericString());
-            if (id != null) {
-                ImmutableList.Builder<AnnotatedParameter<?>> paramsBuilder = ImmutableList.builder();
-                for (AnnotatedParameter<?> param : method.getParameters()) {
-                    if (param.isAnnotationPresent(Observes.class)) {
-                        // Add id qualifier
-                        paramsBuilder.add(new WrappedParam(param, ImmutableSet.builder().addAll(param.getAnnotations()).add(id).build()));
-                    } else {
-                        paramsBuilder.add(param);
-                    }
-                }
-                methodsBuilder.add(new WrappedMethod(method, paramsBuilder.build()));
-            } else {
-                // Use the method as it is
-                methodsBuilder.add(method);
-            }
-        }
-        return new WrappedType(annotatedType, methodsBuilder.build());
-    }
-
     private boolean hasEventParameter(AnnotatedMethod<?> annotatedMethod) {
         for (AnnotatedParameter<?> param : annotatedMethod.getParameters()) {
             if (param.isAnnotationPresent(Observes.class)) {
@@ -338,91 +305,6 @@ public class RouteExtension implements Extension {
             }
         }
         return false;
-    }
-
-    static class WrappedType<T> extends ForwardingAnnotatedType<T> {
-
-        private final AnnotatedType<T> annotatedType;
-
-        private final Set<AnnotatedMethod<? super T>> methods;
-
-        WrappedType(AnnotatedType<T> annotatedType, Set<AnnotatedMethod<? super T>> methods) {
-            this.annotatedType = annotatedType;
-            this.methods = methods;
-        }
-
-        @Override
-        public Set<AnnotatedMethod<? super T>> getMethods() {
-            return methods;
-        }
-
-        @Override
-        public AnnotatedType<T> delegate() {
-            return annotatedType;
-        }
-
-    }
-
-    static class WrappedMethod<T> extends ForwardingAnnotatedMethod<T> {
-
-        private final AnnotatedMethod<T> annotatedMethod;
-
-        private final List<AnnotatedParameter<T>> parameters;
-
-        WrappedMethod(AnnotatedMethod<T> annotatedMethod, List<AnnotatedParameter<T>> parameters) {
-            this.annotatedMethod = annotatedMethod;
-            this.parameters = parameters;
-        }
-
-        @Override
-        public List<AnnotatedParameter<T>> getParameters() {
-            return parameters;
-        }
-
-        @Override
-        protected AnnotatedMethod<T> delegate() {
-            return annotatedMethod;
-        }
-
-    }
-
-    static class WrappedParam<T> extends ForwardingAnnotatedParameter<T> {
-
-        private final AnnotatedParameter<T> annotatedParameter;
-
-        private final Set<Annotation> annotations;
-
-        WrappedParam(AnnotatedParameter<T> annotatedParameter, Set<Annotation> annotations) {
-            this.annotatedParameter = annotatedParameter;
-            this.annotations = annotations;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public <A extends Annotation> A getAnnotation(Class<A> annotationType) {
-            for (Annotation annotation : annotations) {
-                if (annotation.annotationType().equals(annotationType)) {
-                    return (A) annotation;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Set<Annotation> getAnnotations() {
-            return annotations;
-        }
-
-        @Override
-        public boolean isAnnotationPresent(Class<? extends Annotation> annotationType) {
-            return getAnnotation(annotationType) != null;
-        }
-
-        @Override
-        protected AnnotatedParameter<T> delegate() {
-            return annotatedParameter;
-        }
-
     }
 
 }

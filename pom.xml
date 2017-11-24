@@ -50,13 +50,11 @@
       <maven.compiler.source>1.8</maven.compiler.source>
       <maven.compiler.target>1.8</maven.compiler.target>
       <!-- Versions -->
-      <version.cdi12>1.2</version.cdi12>
       <version.cdi2>2.0</version.cdi2>
-      <version.weld2>2.4.5.Final</version.weld2>
-      <version.weld3>3.0.1.Final</version.weld3>
-      <version.vertx>3.4.2</version.vertx>
+      <version.weld3>3.0.2.Final</version.weld3>
+      <version.vertx>3.5.0</version.vertx>
       <version.junit>4.12</version.junit>
-      <version.rest.assured>3.0.1</version.rest.assured>
+      <version.rest.assured>3.0.6</version.rest.assured>
       <version.slf4j>1.7.10</version.slf4j>
       <version.vertx.completable.future>0.1.2</version.vertx.completable.future>
       <version.awaitility>3.0.0</version.awaitility>
@@ -178,11 +176,12 @@
             </property>
          </activation>
       </profile>
+      <!-- At the moment we only have one Weld profile - keep this for future versions -->
       <profile>
          <id>weld3</id>
          <activation>
             <property>
-               <name>!weld2</name>
+               <name>!weldX</name>
             </property>
          </activation>
          <properties>
@@ -190,18 +189,6 @@
             <version.cdi>${version.cdi2}</version.cdi>
          </properties>
       </profile>
-      <profile>
-         <id>weld2</id>
-         <activation>
-            <property>
-               <name>weld2</name>
-            </property>
-         </activation>
-         <properties>
-            <version.weld>${version.weld2}</version.weld>
-            <version.cdi>${version.cdi12}</version.cdi>
-         </properties>
-      </profile>
-   </profiles>
+    </profiles>
 
 </project>
