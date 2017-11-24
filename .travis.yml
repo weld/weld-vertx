@@ -4,7 +4,6 @@ jdk:
   - oraclejdk8
   - openjdk8
 env:
-  - WELD_PROFILE=weld2
   - WELD_PROFILE=weld3
 script: "mvn verify -D${WELD_PROFILE} -DdefaultTimeout=10000 -DglobalTimeout=20000"
 sudo: false

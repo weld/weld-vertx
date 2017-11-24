@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.enterprise.context.Dependent;
-import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Default;
@@ -39,7 +38,6 @@ import javax.enterprise.inject.spi.BeforeBeanDiscovery;
 import javax.enterprise.inject.spi.CDI;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
-import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.WithAnnotations;
 import javax.enterprise.util.AnnotationLiteral;
@@ -71,115 +69,36 @@ public class ServiceProxyExtension implements Extension {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     void registerServiceProxyBeans(@Observes AfterBeanDiscovery event, BeanManager beanManager) {
         for (Class<?> serviceInterface : serviceInterfaces) {
-            event.addBean(new ServiceProxyBean(serviceInterface) {
-                @Override
-                public Object create(CreationalContext creationalContext) {
-                    InjectionPoint injectionPoint = (InjectionPoint) beanManager.getInjectableReference(new InjectionPointMetadataInjectionPoint(),
-                            creationalContext);
-                    Set<Annotation> qualifiers = injectionPoint.getQualifiers();
-                    String address = null;
-                    for (Annotation qualifier : qualifiers) {
-                        if (ServiceProxy.class.equals(qualifier.annotationType())) {
-                            ServiceProxy serviceProxy = (ServiceProxy) qualifier;
-                            address = serviceProxy.value();
-                            break;
+            event.addBean().id(ServiceProxyExtension.class.getName() + "_" + serviceInterface.getName()).scope(Dependent.class)
+                    .types(serviceInterface, Object.class).qualifiers(Any.Literal.INSTANCE, ServiceProxy.Literal.EMPTY).createWith(ctx -> {
+                        // First obtain the injection point metadata
+                        InjectionPoint injectionPoint = (InjectionPoint) beanManager.getInjectableReference(new InjectionPointMetadataInjectionPoint(), ctx);
+                        // And obtain the address on which the service is published
+                        Set<Annotation> qualifiers = injectionPoint.getQualifiers();
+                        String address = null;
+                        for (Annotation qualifier : qualifiers) {
+                            if (ServiceProxy.class.equals(qualifier.annotationType())) {
+                                ServiceProxy serviceProxy = (ServiceProxy) qualifier;
+                                address = serviceProxy.value();
+                                break;
+                            }
                         }
-                    }
-                    if (address == null) {
-                        throw new IllegalStateException("Service proxy address is not declared");
-                    }
-                    Instance<ServiceProxySupport> supportInstance = CDI.current().select(ServiceProxySupport.class);
-                    if (supportInstance.isUnsatisfied() || supportInstance.isAmbiguous()) {
-                        throw new IllegalStateException("ServiceProxySupport cannot be resolved");
-                    }
-                    ServiceProxySupport serviceProxySupport = supportInstance.get();
-                    return Proxy.newProxyInstance(ServiceProxyExtension.class.getClassLoader(), new Class[] { serviceInterface },
-                            new ServiceProxyInvocationHandler(serviceProxySupport, serviceInterface, address));
-                }
-            });
+                        if (address == null) {
+                            throw new IllegalStateException("Service proxy address is not declared");
+                        }
+                        Instance<ServiceProxySupport> supportInstance = CDI.current().select(ServiceProxySupport.class);
+                        if (!supportInstance.isResolvable()) {
+                            throw new IllegalStateException("ServiceProxySupport cannot be resolved");
+                        }
+                        ServiceProxySupport serviceProxySupport = supportInstance.get();
+                        return Proxy.newProxyInstance(ServiceProxyExtension.class.getClassLoader(), new Class[] { serviceInterface },
+                                new ServiceProxyInvocationHandler(serviceProxySupport, serviceInterface, address));
+                    });
+
             LOGGER.info("Custom bean for service interface {0} registered", serviceInterface);
         }
-    }
-
-    private abstract class ServiceProxyBean<T> implements Bean<T>, PassivationCapable {
-
-        private final Class<?> serviceInterface;
-
-        private final Set<Type> beanTypes;
-
-        private final Set<Annotation> qualifiers;
-
-        @SuppressWarnings("serial")
-        private ServiceProxyBean(Class<?> serviceInterface) {
-            this.serviceInterface = serviceInterface;
-            Set<Type> beanTypes = new HashSet<>();
-            beanTypes.add(Object.class);
-            beanTypes.add(serviceInterface);
-            this.beanTypes = Collections.unmodifiableSet(beanTypes);
-            Set<Annotation> qualifiers = new HashSet<>();
-            qualifiers.add(new AnnotationLiteral<Any>() {
-            });
-            qualifiers.add(ServiceProxy.Literal.EMPTY);
-            this.qualifiers = Collections.unmodifiableSet(qualifiers);
-        }
-
-        @Override
-        public void destroy(T instance, CreationalContext<T> creationalContext) {
-        }
-
-        @Override
-        public Set<Type> getTypes() {
-            return beanTypes;
-        }
-
-        @Override
-        public Set<Annotation> getQualifiers() {
-            return qualifiers;
-        }
-
-        @Override
-        public Class<? extends Annotation> getScope() {
-            return Dependent.class;
-        }
-
-        @Override
-        public String getName() {
-            return null;
-        }
-
-        @Override
-        public Set<Class<? extends Annotation>> getStereotypes() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isAlternative() {
-            return false;
-        }
-
-        @Override
-        public Class<?> getBeanClass() {
-            return ServiceProxyExtension.class;
-        }
-
-        @Override
-        public Set<InjectionPoint> getInjectionPoints() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isNullable() {
-            return false;
-        }
-
-        @Override
-        public String getId() {
-            return ServiceProxyExtension.class.getName() + "_" + serviceInterface.getName();
-        }
-
     }
 
     private static class InjectionPointMetadataInjectionPoint implements InjectionPoint {

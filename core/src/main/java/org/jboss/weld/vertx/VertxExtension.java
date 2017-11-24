@@ -17,42 +17,28 @@
 package org.jboss.weld.vertx;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Default;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.Bean;
-import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.ObserverMethod;
-import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.inject.spi.ProcessBeanAttributes;
 import javax.enterprise.inject.spi.ProcessInjectionPoint;
 import javax.enterprise.inject.spi.ProcessObserverMethod;
-import javax.enterprise.inject.spi.ProcessProducerMethod;
-import javax.enterprise.util.AnnotationLiteral;
 
 import org.jboss.weld.bean.builtin.BeanManagerProxy;
-import org.jboss.weld.resolution.BeanTypeAssignabilityRules;
-import org.jboss.weld.util.bean.ForwardingBeanAttributes;
-import org.jboss.weld.util.collections.ImmutableSet;
 import org.jboss.weld.util.reflection.Reflections;
 
 import io.vertx.core.Context;
@@ -92,8 +78,6 @@ public class VertxExtension implements Extension {
 
     private final Set<Annotation> asyncReferenceQualifiers;
 
-    private final Set<AsyncProducerMetadata> asyncProducerMethods;
-
     private final Vertx vertx;
 
     private final Context context;
@@ -105,7 +89,6 @@ public class VertxExtension implements Extension {
     public VertxExtension(Vertx vertx, Context context) {
         this.consumerAddresses = new HashSet<>();
         this.asyncReferenceQualifiers = new HashSet<>();
-        this.asyncProducerMethods = new HashSet<>();
         this.vertx = vertx;
         this.context = context;
     }
@@ -120,28 +103,8 @@ public class VertxExtension implements Extension {
         // Add all discovered qualifiers to AsyncReferenceImpl bean attributes
         if (!asyncReferenceQualifiers.isEmpty()) {
             LOGGER.debug("Adding additional AsyncReference qualifiers: {0}", asyncReferenceQualifiers);
-            BeanAttributes<AsyncReferenceImpl> attributes = event.getBeanAttributes();
-            event.setBeanAttributes(new ForwardingBeanAttributes<AsyncReferenceImpl>() {
-
-                Set<Annotation> qualifiers = ImmutableSet.<Annotation> builder().addAll(attributes.getQualifiers()).addAll(asyncReferenceQualifiers).build();
-
-                @Override
-                public Set<Annotation> getQualifiers() {
-                    return qualifiers;
-                }
-
-                @Override
-                protected BeanAttributes<AsyncReferenceImpl> attributes() {
-                    return attributes;
-                }
-            });
+            event.configureBeanAttributes().addQualifiers(asyncReferenceQualifiers);
         }
-    }
-
-    @SuppressWarnings("rawtypes")
-    void collectAsyncProducerMethods(@Observes ProcessProducerMethod<? extends CompletionStage, ?> event) {
-        // Discover all producer methods returning CompletionStage<?>
-        asyncProducerMethods.add(new AsyncProducerMetadata(event.getAnnotatedProducerMethod().getBaseType(), event.getBean().getQualifiers()));
     }
 
     public void processVertxEventObserver(@Observes ProcessObserverMethod<VertxEvent, ?> event) {
@@ -160,19 +123,11 @@ public class VertxExtension implements Extension {
             return;
         }
         // Allow to inject Vertx used to deploy the WeldVerticle
-        event.addBean(new VertxBean<Vertx>(getBeanTypes(vertx.getClass(), Vertx.class)) {
-            @Override
-            public Vertx create(CreationalContext<Vertx> creationalContext) {
-                return vertx;
-            }
-        });
+        event.addBean().types(getBeanTypes(vertx.getClass(), Vertx.class)).addQualifiers(Any.Literal.INSTANCE, Default.Literal.INSTANCE)
+                .scope(ApplicationScoped.class).createWith(c -> vertx);
         // Allow to inject Context of the WeldVerticle
-        event.addBean(new VertxBean<Context>(getBeanTypes(context.getClass(), Context.class)) {
-            @Override
-            public Context create(CreationalContext<Context> creationalContext) {
-                return context;
-            }
-        });
+        event.addBean().types(getBeanTypes(context.getClass(), Context.class)).addQualifiers(Any.Literal.INSTANCE, Default.Literal.INSTANCE)
+                .scope(ApplicationScoped.class).createWith(c -> context);
     }
 
     public void registerConsumersAfterDeploymentValidation(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager beanManager) {
@@ -212,19 +167,6 @@ public class VertxExtension implements Extension {
         }
     }
 
-    List<AsyncProducerMetadata> getAsyncProducerMetadata(Type requiredType, Set<Annotation> qualifiers) {
-        if (asyncProducerMethods.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<AsyncProducerMetadata> found = new ArrayList<>();
-        for (AsyncProducerMetadata metadata : asyncProducerMethods) {
-            if (metadata.matches(requiredType, qualifiers)) {
-                found.add(metadata);
-            }
-        }
-        return found;
-    }
-
     private Set<Type> getBeanTypes(Class<?> implClazz, Type... types) {
         Set<Type> beanTypes = new HashSet<>();
         Collections.addAll(beanTypes, types);
@@ -246,102 +188,6 @@ public class VertxExtension implements Extension {
             }
         }
         return null;
-    }
-
-    private abstract class VertxBean<T> implements Bean<T>, PassivationCapable {
-
-        private final Set<Type> beanTypes;
-
-        private final Set<Annotation> qualifiers;
-
-        private VertxBean(Set<Type> beanTypes) {
-            beanTypes.add(Object.class);
-            this.beanTypes = Collections.unmodifiableSet(beanTypes);
-            Set<Annotation> qualifiers = new HashSet<>();
-            qualifiers.add(new AnnotationLiteral<Any>() {
-                private static final long serialVersionUID = 1L;
-            });
-            qualifiers.add(new AnnotationLiteral<Default>() {
-                private static final long serialVersionUID = 1L;
-            });
-            this.qualifiers = Collections.unmodifiableSet(qualifiers);
-        }
-
-        @Override
-        public void destroy(T instance, CreationalContext<T> creationalContext) {
-        }
-
-        @Override
-        public Set<Type> getTypes() {
-            return beanTypes;
-        }
-
-        @Override
-        public Set<Annotation> getQualifiers() {
-            return qualifiers;
-        }
-
-        @Override
-        public Class<? extends Annotation> getScope() {
-            return ApplicationScoped.class;
-        }
-
-        @Override
-        public String getName() {
-            return null;
-        }
-
-        @Override
-        public Set<Class<? extends Annotation>> getStereotypes() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isAlternative() {
-            return false;
-        }
-
-        @Override
-        public Class<?> getBeanClass() {
-            return VertxExtension.class;
-        }
-
-        @Override
-        public Set<InjectionPoint> getInjectionPoints() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean isNullable() {
-            return false;
-        }
-
-        @Override
-        public String getId() {
-            return VertxExtension.class.getName() + "_" + beanTypes;
-        }
-
-    }
-
-    static class AsyncProducerMetadata {
-
-        Type producerType;
-
-        Type resultType;
-
-        Set<Annotation> qualifiers;
-
-        public AsyncProducerMetadata(Type producerType, Set<Annotation> qualifiers) {
-            this.producerType = producerType;
-            ParameterizedType parameterizedType = (ParameterizedType) producerType;
-            this.resultType = parameterizedType.getActualTypeArguments()[0];
-            this.qualifiers = qualifiers;
-        }
-
-        boolean matches(Type requiredType, Set<Annotation> qualifiers) {
-            return BeanTypeAssignabilityRules.instance().matches(requiredType, resultType) && this.qualifiers.containsAll(qualifiers);
-        }
-
     }
 
 }

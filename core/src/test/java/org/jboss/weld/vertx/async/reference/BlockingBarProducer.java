@@ -18,6 +18,7 @@ package org.jboss.weld.vertx.async.reference;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Dependent;
@@ -27,6 +28,8 @@ import javax.enterprise.inject.Produces;
 @ApplicationScoped
 public class BlockingBarProducer {
 
+    static final AtomicBoolean PRODUCER_USED = new AtomicBoolean(false);
+
     static CompletableFuture<BlockingBar> future;
 
     static void complete(int code) {
@@ -35,12 +38,14 @@ public class BlockingBarProducer {
 
     static void reset() {
         future = new CompletableFuture<>();
+        PRODUCER_USED.set(false);
     }
 
     @Produces
     @Dependent
     @Juicy
     CompletionStage<BlockingBar> juicyBlockingBar() {
+        PRODUCER_USED.set(true);
         return future;
     }
 

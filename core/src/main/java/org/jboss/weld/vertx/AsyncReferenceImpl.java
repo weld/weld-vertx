@@ -19,24 +19,23 @@ package org.jboss.weld.vertx;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Set;
+import java.util.Arrays;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.PreDestroy;
 import javax.enterprise.context.Dependent;
-import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Typed;
-import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 
 import org.jboss.weld.exceptions.AmbiguousResolutionException;
+import org.jboss.weld.inject.WeldInstance;
+import org.jboss.weld.inject.WeldInstance.Handler;
 import org.jboss.weld.interceptor.util.proxy.TargetInstanceProxy;
 import org.jboss.weld.logging.BeanManagerLogger;
-import org.jboss.weld.vertx.VertxExtension.AsyncProducerMetadata;
+import org.jboss.weld.util.reflection.ParameterizedTypeImpl;
 
 import io.vertx.core.Vertx;
 import me.escoffier.vertx.completablefuture.VertxCompletableFuture;
@@ -46,18 +45,11 @@ import me.escoffier.vertx.completablefuture.VertxCompletableFuture;
  *
  * <ul>
  * <ol>
- * holds a special creational context so that we're able to correctly destroy dependent bean instances
- * </ol>
- * <ol>
  * the set of qualifiers of this bean is enhanced so that it satisfies all injection points with required type {@link AsyncReference} - see
  * {@link VertxExtension#processAsyncReferenceInjectionPoints(javax.enterprise.inject.spi.ProcessInjectionPoint))}
  * </ol>
  * <ol>
  * the set of bean types of this bean is restricted
- * </ol>
- * <ol>
- * producer methods returning {@link CompletionStage} are discovered in
- * {@link VertxExtension#collectAsyncProducerMethods(javax.enterprise.inject.spi.ProcessProducerMethod)}
  * </ol>
  * </ul>
  *
@@ -68,7 +60,7 @@ import me.escoffier.vertx.completablefuture.VertxCompletableFuture;
 @Dependent
 class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements AsyncReference<T> {
 
-    private final CreationalContext<T> creationalContext;
+    private final WeldInstance<Object> instance;
 
     private final AtomicBoolean isDone;
 
@@ -79,33 +71,28 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
     private volatile Throwable cause;
 
     @Inject
-    public AsyncReferenceImpl(InjectionPoint injectionPoint, Vertx vertx, BeanManager beanManager) {
+    public AsyncReferenceImpl(InjectionPoint injectionPoint, Vertx vertx, BeanManager beanManager, @Any WeldInstance<Object> instance) {
         this.isDone = new AtomicBoolean(false);
         this.future = new VertxCompletableFuture<>(vertx);
-        this.creationalContext = beanManager.createCreationalContext(null);
+        this.instance = instance;
 
         ParameterizedType parameterizedType = (ParameterizedType) injectionPoint.getType();
         Type requiredType = parameterizedType.getActualTypeArguments()[0];
+        Annotation[] qualifiers = injectionPoint.getQualifiers().toArray(new Annotation[] {});
 
         // First check if there is a relevant async producer method available
-        List<AsyncProducerMetadata> foundMetadata = beanManager.getExtension(VertxExtension.class).getAsyncProducerMetadata(requiredType,
-                injectionPoint.getQualifiers());
+        WeldInstance<Object> completionStage = instance.select(new ParameterizedTypeImpl(CompletionStage.class, requiredType), qualifiers);
 
-        if (foundMetadata.size() > 1) {
+        if (completionStage.isAmbiguous()) {
             failure(new AmbiguousResolutionException(
                     "Ambiguous async producer methods for type " + requiredType + " with qualifiers " + injectionPoint.getQualifiers()));
-        } else if (foundMetadata.size() == 1) {
+        } else if (!completionStage.isUnsatisfied()) {
             // Use the produced CompletionStage
-            initWithCompletionStage(foundMetadata.get(0), beanManager);
+            initWithCompletionStage(completionStage.getHandler());
         } else {
             // Use Vertx worker thread
-            initWithWorker(injectionPoint, vertx, beanManager, requiredType);
+            initWithWorker(requiredType, qualifiers, vertx, beanManager);
         }
-    }
-
-    @PreDestroy
-    void dispose() {
-        creationalContext.release();
     }
 
     @Override
@@ -133,10 +120,8 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
     }
 
     @SuppressWarnings("unchecked")
-    private void initWithCompletionStage(AsyncProducerMetadata metadata, BeanManager beanManager) {
-        Bean<CompletionStage<T>> bean = (Bean<CompletionStage<T>>) beanManager
-                .resolve(beanManager.getBeans(metadata.producerType, metadata.qualifiers.toArray(new Annotation[] {})));
-        Object possibleStage = beanManager.getReference(bean, metadata.producerType, creationalContext);
+    private void initWithCompletionStage(Handler<Object> completionStage) {
+        Object possibleStage = completionStage.get();
         if (possibleStage instanceof CompletionStage) {
             ((CompletionStage<T>) possibleStage).whenComplete((result, throwable) -> {
                 if (throwable != null) {
@@ -146,28 +131,31 @@ class AsyncReferenceImpl<T> extends ForwardingCompletionStage<T> implements Asyn
                 }
             });
         } else {
-            throw new IllegalStateException("The contextual reference of " + bean + " is not a CompletionStage");
+            throw new IllegalStateException("The contextual reference of " + completionStage.getBean() + " is not a CompletionStage");
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void initWithWorker(InjectionPoint injectionPoint, Vertx vertx, BeanManager beanManager, Type requiredType) {
-        vertx.<T> executeBlocking((f -> {
-            Set<Bean<?>> beans = beanManager.getBeans(requiredType, injectionPoint.getQualifiers().toArray(new Annotation[] {}));
-            if (beans.isEmpty()) {
-                f.fail(BeanManagerLogger.LOG.injectionPointHasUnsatisfiedDependencies(injectionPoint.getQualifiers(), requiredType, ""));
+    private void initWithWorker(Type requiredType, Annotation[] qualifiers, Vertx vertx, BeanManager beanManager) {
+        vertx.<Object> executeBlocking((f -> {
+            WeldInstance<Object> asyncInstance = instance.select(requiredType, qualifiers);
+            if (asyncInstance.isUnsatisfied()) {
+                f.fail(BeanManagerLogger.LOG.injectionPointHasUnsatisfiedDependencies(Arrays.toString(qualifiers), requiredType, ""));
+                return;
+            } else if (asyncInstance.isAmbiguous()) {
+                f.fail(BeanManagerLogger.LOG.injectionPointHasAmbiguousDependencies(Arrays.toString(qualifiers), requiredType, ""));
                 return;
             }
-            Bean<T> bean = (Bean<T>) beanManager.resolve(beans);
-            T beanInstance = (T) beanManager.getReference(bean, requiredType, creationalContext);
-            if (beanManager.isNormalScope(bean.getScope()) && beanInstance instanceof TargetInstanceProxy) {
+            Handler<Object> handler = asyncInstance.getHandler();
+            Object beanInstance = handler.get();
+            if (beanManager.isNormalScope(handler.getBean().getScope()) && beanInstance instanceof TargetInstanceProxy) {
                 // Initialize normal scoped bean instance eagerly
                 ((TargetInstanceProxy<?>) beanInstance).getTargetInstance();
             }
             f.complete(beanInstance);
         }), (r) -> {
             if (r.succeeded()) {
-                sucess(r.result());
+                sucess((T) r.result());
             } else {
                 failure(r.cause());
             }
