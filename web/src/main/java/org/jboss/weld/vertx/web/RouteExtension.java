@@ -19,6 +19,7 @@ package org.jboss.weld.vertx.web;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,7 +102,10 @@ public class RouteExtension implements Extension {
                 event.configureAnnotatedType().methods().forEach(m -> {
                     Id id = routes.get(m.getAnnotated().getJavaMember().toGenericString());
                     if (id != null) {
-                        m.filterParams(p -> p.isAnnotationPresent(Observes.class)).findFirst().ifPresent(param -> param.add(id));
+                        m.filterParams(p -> p.isAnnotationPresent(Observes.class)).findFirst().ifPresent(param -> {
+                            param.add(id);
+                            LOGGER.debug("Add id qualifier {0} to parameter {1}", id, param.getAnnotated());
+                        });
                     }
                 });
             }
@@ -291,7 +295,7 @@ public class RouteExtension implements Extension {
         @Override
         public void handle(RoutingContext ctx) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Fire RoutingContext event with {0} for {1}", routeObserver.id, routeObserver.webRoutes);
+                LOGGER.trace("Fire RoutingContext event with {0} for {1}", routeObserver.id, Arrays.toString(routeObserver.webRoutes));
             }
             event.fire(ctx);
         }
