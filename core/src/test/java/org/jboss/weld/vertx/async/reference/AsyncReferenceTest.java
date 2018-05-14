@@ -204,5 +204,6 @@ public class AsyncReferenceTest {
         });
         assertFalse(created.get());
         NormalScopedBlockingFoo.complete("Foo");
+        Awaitility.await().atMost(Timeouts.DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS).until(() -> created.get());
     }
 }
