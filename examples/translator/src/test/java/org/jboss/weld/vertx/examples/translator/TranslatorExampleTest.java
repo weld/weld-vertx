@@ -20,7 +20,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class TranslatorExampleTest {
 
-    static final long DEFAULT_TIMEOUT = 5000;
+    static final long DEFAULT_TIMEOUT = 15000;
 
     private Vertx vertx;
 

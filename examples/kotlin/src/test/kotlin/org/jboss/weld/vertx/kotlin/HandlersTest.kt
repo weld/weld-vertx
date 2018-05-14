@@ -27,7 +27,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-const val DEFAULT_TIMEOUT: Long = 5000;
+const val DEFAULT_TIMEOUT: Long = 15000;
 
 @RunWith(VertxUnitRunner::class)
 class HandlersTest {
