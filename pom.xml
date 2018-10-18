@@ -52,7 +52,7 @@
       <!-- Versions -->
       <version.cdi2>2.0</version.cdi2>
       <version.weld3>3.0.3.Final</version.weld3>
-      <version.vertx>3.5.0</version.vertx>
+      <version.vertx>3.5.4</version.vertx>
       <version.junit>4.12</version.junit>
       <version.rest.assured>3.0.6</version.rest.assured>
       <version.slf4j>1.7.10</version.slf4j>
