@@ -8,7 +8,7 @@ Allows to configure an `io.vertx.ext.web.Route` in a declarative way, using `@or
 ----
 <dependency>
   <groupId>org.jboss.weld.vertx</groupId>
-  <artifactId>weld-vertx-core</artifactId>
+  <artifactId>weld-vertx-web</artifactId>
   <version>${version.weld-vertx}</version>
 </dependency>
 ----
