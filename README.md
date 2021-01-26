@@ -1,4 +1,8 @@
+| :warning: This repository is archived. Some of the core features were adopted in the [Quarkus](https://github.com/quarkusio/quarkus/) project. |
+| --- |
+
 # Weld Vert.x Extensions
+
 <!-- See also https://github.com/badges/shields/issues/1046 -->
 <!--[![Maven Central](http://img.shields.io/maven-central/v/org.jboss.weld.vertx/weld-vertx-core.svg)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22weld-vertx-core%22)-->
 [![Travis CI Build Status](https://img.shields.io/travis/weld/weld-vertx/master.svg)](https://travis-ci.org/weld/weld-vertx)
